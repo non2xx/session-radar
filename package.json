@@ -3,6 +3,7 @@
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
   "version": "0.0.4",
+  "license": "MIT",
   "publisher": "non2xx",
   "private": true,
   "repository": { "type": "git", "url": "https://github.com/non2xx/session-radar.git" },

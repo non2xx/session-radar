@@ -60,4 +60,4 @@ node scripts/install-hooks.mjs                        # adds hooks, backs up set
 
 ## License
 
-No license yet — treat as all-rights-reserved unless one is added.
+[MIT](LICENSE) © 2026 non2xx
