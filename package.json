@@ -1,0 +1,66 @@
+{
+  "name": "session-radar",
+  "displayName": "session-radar",
+  "description": "Claude Code session status panel (tmux, remote)",
+  "version": "0.0.4",
+  "publisher": "non2xx",
+  "private": true,
+  "repository": { "type": "git", "url": "https://github.com/non2xx/session-radar.git" },
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onView:sessionRadar.view", "onView:sessionRadar.cards"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "sessionRadar", "title": "session-radar", "icon": "$(pulse)" }
+      ]
+    },
+    "views": {
+      "sessionRadar": [
+        { "id": "sessionRadar.view", "name": "Sessions" },
+        { "id": "sessionRadar.cards", "name": "Sessions (카드)", "type": "webview" }
+      ]
+    },
+    "commands": [
+      { "command": "sessionRadar.refresh", "title": "새로고침", "icon": "$(refresh)" },
+      { "command": "sessionRadar.addGroup", "title": "그룹 추가", "icon": "$(new-folder)" },
+      { "command": "sessionRadar.addSession", "title": "세션 추가", "icon": "$(add)" },
+      { "command": "sessionRadar.renameGroup", "title": "그룹 이름변경" },
+      { "command": "sessionRadar.deleteGroup", "title": "그룹 삭제" },
+      { "command": "sessionRadar.renameSession", "title": "이름변경(별명)" },
+      { "command": "sessionRadar.hideSession", "title": "목록에서 삭제" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "sessionRadar.addGroup", "when": "view == sessionRadar.view", "group": "navigation" },
+        { "command": "sessionRadar.addSession", "when": "view == sessionRadar.view", "group": "navigation" },
+        { "command": "sessionRadar.refresh", "when": "view == sessionRadar.view", "group": "navigation" },
+        { "command": "sessionRadar.addGroup", "when": "view == sessionRadar.cards", "group": "navigation" },
+        { "command": "sessionRadar.addSession", "when": "view == sessionRadar.cards", "group": "navigation" },
+        { "command": "sessionRadar.refresh", "when": "view == sessionRadar.cards", "group": "navigation" }
+      ],
+      "view/item/context": [
+        { "command": "sessionRadar.renameGroup", "when": "view == sessionRadar.view && viewItem == group" },
+        { "command": "sessionRadar.deleteGroup", "when": "view == sessionRadar.view && viewItem == group" },
+        { "command": "sessionRadar.renameSession", "when": "view == sessionRadar.view && viewItem == session" },
+        { "command": "sessionRadar.hideSession", "when": "view == sessionRadar.view && viewItem == session" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "package": "vsce package --no-dependencies -o session-radar.vsix"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3",
+    "esbuild": "^0.24",
+    "typescript": "^5.5",
+    "vitest": "^2"
+  }
+}
