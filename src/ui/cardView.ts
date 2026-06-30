@@ -132,7 +132,7 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   function hideMenu(){menu.style.display='none';}
   function sessionMenu(e,name,label){showMenu(e,[
     {label:'분할로 열기',run:()=>post({type:'jumpSplit',name})},
-    {label:'터미널 닫기',run:()=>post({type:'closeTerminal',name})},
+    {label:'분할 닫기',run:()=>post({type:'closeTerminal',name})},
     {label:'이름변경(별명)',run:()=>post({type:'renameSession',name,label})},
     {label:'그룹에서 빼기(미분류로)',run:()=>post({type:'move',name,targetGroupId:null,beforeName:null})},
     {label:'프로젝트 경로 지정',run:()=>post({type:'setPath',name})},

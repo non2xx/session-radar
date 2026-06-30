@@ -16,18 +16,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   // jump(일반)와 jumpSplit(분할)이 공유하는 열기 로직. split=true면 활성 터미널 옆에 분할.
   const openSession = (name: string, opts: { split: boolean }) => {
-    const active = vscode.window.activeTerminal;
     const existing = vscode.window.terminals.filter((t) => t.name === name);
-    // 분할 가능 = 분할 요청 + 옆에 붙일 활성 터미널 있음 + 그 활성이 자기 자신이 아님.
-    const wantSplit = opts.split && !!active && active.name !== name;
     // 분할이 아니고 이미 열려 있으면 → 그 탭으로 포커스(중복 attach/거울 방지).
-    if (!wantSplit && existing.length) { existing[0].show(); markOpen(name); return; }
+    if (!opts.split && existing.length) { existing[0].show(); markOpen(name); return; }
     if (!isSafeSessionName(name)) {
       vscode.window.showWarningMessage(`'${name}' 이름이 안전하지 않아 자동으로 열 수 없어요 (영문/숫자/._- 만).`);
       return;
     }
-    // 분할이면 기존 탭을 닫아(detach, tmux 세션·내용 보존) 분할 자리로 "이동" — 같은 세션 거울 방지.
-    if (wantSplit) for (const t of existing) t.dispose();
+    // 분할이면 기존 탭을 닫아(detach, tmux 세션·내용 보존) 에디터 영역 옆으로 다시 붙임 — 같은 세션 거울 방지.
+    if (opts.split) for (const t of existing) t.dispose();
     let cwd: string | undefined = loadLayout(LAYOUT_FILE).paths[name];
     if (cwd) {
       let ok = false;
@@ -37,9 +34,9 @@ export function activate(context: vscode.ExtensionContext) {
         cwd = undefined;
       }
     }
-    const options: vscode.TerminalOptions = wantSplit
-      ? { name, location: { parentTerminal: active! } } // 활성 터미널 옆 분할
-      : { name };                                        // 일반 단일(분할 불가 폴백 포함)
+    const options: vscode.TerminalOptions = opts.split
+      ? { name, location: { viewColumn: vscode.ViewColumn.Beside } } // 에디터 영역 옆에 분할(견고)
+      : { name };                                                     // 일반 단일(패널)
     const term = vscode.window.createTerminal(options);
     term.sendText(attachCommand(name, cwd)); // new session → -c cwd, existing tmux → reattach (-c ignored)
     term.show();

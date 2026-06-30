@@ -36,7 +36,7 @@
       { "command": "sessionRadar.setPath", "title": "프로젝트 경로 지정" },
       { "command": "sessionRadar.clearPath", "title": "경로 지우기" },
       { "command": "sessionRadar.jumpSplit", "title": "분할로 열기" },
-      { "command": "sessionRadar.closeTerminal", "title": "터미널 닫기" }
+      { "command": "sessionRadar.closeTerminal", "title": "분할 닫기" }
     ],
     "menus": {
       "view/title": [
