@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("sessionRadar.refresh", () => refreshAll()),
     vscode.commands.registerCommand("sessionRadar.jump", (name: string) => {
       const existing = vscode.window.terminals.find((t) => t.name === name);
-      if (existing) { existing.show(); return; } // already open → focus (avoid duplicate attach/mirroring)
+      if (existing) { existing.show(); markOpen(name); return; } // focus + record in working set (avoid duplicate attach/mirroring)
       if (!isSafeSessionName(name)) {
         vscode.window.showWarningMessage(`'${name}' 이름이 안전하지 않아 자동으로 열 수 없어요 (영문/숫자/._- 만).`);
         return;
