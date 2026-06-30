@@ -23,4 +23,11 @@ describe("buildTree", () => {
     const t = buildTree(emptyLayout(), new Map(), ["x"]);
     expect(t.ungrouped[0]).toEqual({ name: "x", label: "x", state: "unknown", ts: null });
   });
+  it("carries the configured path onto the node", () => {
+    const layout = emptyLayout();
+    layout.paths["x"] = "/home/u/x";
+    const t = buildTree(layout, new Map(), ["x", "y"]);
+    expect(t.ungrouped.find((s) => s.name === "x")?.path).toBe("/home/u/x");
+    expect(t.ungrouped.find((s) => s.name === "y")?.path).toBeUndefined();
+  });
 });

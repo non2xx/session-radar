@@ -87,7 +87,10 @@ export class SessionRadarProvider
       const mins = Math.max(0, Math.round((Date.now() / 1000 - e.node.ts) / 60));
       t.description = `${mins}m`;
     }
-    if (e.node.label !== e.node.name) t.tooltip = e.node.name;
+    const tip: string[] = [];
+    if (e.node.label !== e.node.name) tip.push(e.node.name);
+    if (e.node.path) tip.push(`📁 ${e.node.path}`);
+    if (tip.length) t.tooltip = tip.join("\n");
     t.command = { command: "sessionRadar.jump", title: "Jump", arguments: [e.node.name] };
     return t;
   }

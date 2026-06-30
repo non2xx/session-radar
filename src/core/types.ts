@@ -14,6 +14,7 @@ export interface SessionNode {
   label: string;         // alias || name
   state: SessionState;
   ts: number | null;
+  path?: string;         // configured project path (for -c on open / tooltip)
 }
 export interface GroupNode { id: string; name: string; sessions: SessionNode[]; }
 export interface TreeData { groups: GroupNode[]; ungrouped: SessionNode[]; }
