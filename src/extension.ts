@@ -75,6 +75,12 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerCommands(context, refreshAll);
 
+  // 터미널이 열리거나 닫히면 두 뷰의 "열림(●)" 표시를 갱신.
+  context.subscriptions.push(
+    vscode.window.onDidOpenTerminal(() => refreshAll()),
+    vscode.window.onDidCloseTerminal(() => refreshAll()),
+  );
+
   // Auto-reconnect: reopen previously-open sessions on activation (incl. across Tunnel↔SSH).
   if (vscode.workspace.getConfiguration("sessionRadar").get<boolean>("autoReconnect", true)) {
     const pending = new Set(loadOpen(OPEN_FILE).filter(isSafeSessionName));

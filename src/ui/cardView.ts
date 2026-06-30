@@ -44,7 +44,8 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
 
   refresh(): void {
     if (!this.view || !this.view.visible) return;
-    this.view.webview.postMessage({ type: "render", data: getTreeData() });
+    const open = vscode.window.terminals.map((t) => t.name);
+    this.view.webview.postMessage({ type: "render", data: getTreeData(), open });
   }
 
   private html(): string {
@@ -84,7 +85,8 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
   function cls(s){return ['working','waiting','idle'].indexOf(s)>=0?s:'unknown';}
   function post(o){vscode.postMessage(o);}
-  function render(data){
+  function render(data, open){
+    const openSet=new Set(open||[]);
     const root=document.getElementById('root');root.innerHTML='';flat=[];
     const groups=[...data.groups.map(g=>({id:g.id,name:g.name,sessions:g.sessions})),{id:null,name:'미분류',sessions:data.ungrouped}];
     for(const g of groups){
@@ -98,7 +100,8 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
       for(const s of (g.sessions||[])){
         const idx=flat.length;flat.push(s.name);const st=cls(s.state);
         const card=document.createElement('div');card.className='card '+st;card.draggable=true;
-        card.innerHTML='<span class="dot '+st+'"></span><span class="nm">'+esc(s.label)+'</span><span class="ago">'+(s.ts?ago(s.ts):'')+'</span>';
+        const om=openSet.has(s.name)?'● ':'';
+        card.innerHTML='<span class="dot '+st+'"></span><span class="nm">'+esc(s.label)+'</span><span class="ago">'+om+(s.ts?ago(s.ts):'')+'</span>';
         const tip=[];if(s.label!==s.name)tip.push(s.name);if(s.path)tip.push('📁 '+s.path);if(tip.length)card.title=tip.join('\\n');
         card.addEventListener('click',()=>{sel=idx;selName=s.name;updateSel();post({type:'jump',name:s.name});});
         card.addEventListener('contextmenu',e=>{e.preventDefault();sessionMenu(e,s.name,s.label);});
@@ -149,7 +152,7 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
     else if(e.key==='ArrowUp'){setSel(sel-1);e.preventDefault();}
     else if(e.key==='Enter'){if(flat[sel])post({type:'jump',name:flat[sel]});e.preventDefault();}
   });
-  window.addEventListener('message',e=>{if(e.data&&e.data.type==='render')render(e.data.data);});
+  window.addEventListener('message',e=>{if(e.data&&e.data.type==='render')render(e.data.data, e.data.open||[]);});
   post({type:'ready'});
 </script></body></html>`;
   }

@@ -83,10 +83,14 @@ export class SessionRadarProvider
     const t = new vscode.TreeItem(e.node.label, vscode.TreeItemCollapsibleState.None);
     t.contextValue = "session";
     t.iconPath = statusIcon(e.node.state);
+    const isOpen = vscode.window.terminals.some((term) => term.name === e.node.name);
+    const parts: string[] = [];
+    if (isOpen) parts.push("●"); // 터미널이 열려 있음(존재 기준)
     if (e.node.ts) {
       const mins = Math.max(0, Math.round((Date.now() / 1000 - e.node.ts) / 60));
-      t.description = `${mins}m`;
+      parts.push(`${mins}m`);
     }
+    if (parts.length) t.description = parts.join(" ");
     const tip: string[] = [];
     if (e.node.label !== e.node.name) tip.push(e.node.name);
     if (e.node.path) tip.push(`📁 ${e.node.path}`);
