@@ -97,7 +97,7 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
         const idx=flat.length;flat.push(s.name);const st=cls(s.state);
         const card=document.createElement('div');card.className='card '+st;card.draggable=true;
         card.innerHTML='<span class="dot '+st+'"></span><span class="nm">'+esc(s.label)+'</span><span class="ago">'+(s.ts?ago(s.ts):'')+'</span>';
-        const tip=[];if(s.label!==s.name)tip.push(s.name);if(s.path)tip.push('📁 '+s.path);if(tip.length)card.title=tip.join('\n');
+        const tip=[];if(s.label!==s.name)tip.push(s.name);if(s.path)tip.push('📁 '+s.path);if(tip.length)card.title=tip.join('\\n');
         card.addEventListener('click',()=>{sel=idx;selName=s.name;updateSel();post({type:'jump',name:s.name});});
         card.addEventListener('contextmenu',e=>{e.preventDefault();sessionMenu(e,s.name,s.label);});
         card.addEventListener('dragstart',e=>{drag=s.name;if(e.dataTransfer){e.dataTransfer.setData('text/plain',s.name);e.dataTransfer.effectAllowed='move';}});
