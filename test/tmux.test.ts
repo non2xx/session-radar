@@ -19,6 +19,24 @@ describe("attachCommand", () => {
   });
 });
 
+describe("attachCommand with cwd", () => {
+  it("no cwd → unchanged", () => {
+    expect(attachCommand("web")).toBe("tmux new-session -A -s 'web'");
+  });
+  it("with cwd appends -c quoted", () => {
+    expect(attachCommand("web", "/home/u/web"))
+      .toBe("tmux new-session -A -s 'web' -c '/home/u/web'");
+  });
+  it("quotes spaces and unicode paths", () => {
+    expect(attachCommand("web", "/home/u/내 프로젝트"))
+      .toBe("tmux new-session -A -s 'web' -c '/home/u/내 프로젝트'");
+  });
+  it("escapes embedded single quote in path", () => {
+    expect(attachCommand("web", "/home/u/a'b"))
+      .toBe("tmux new-session -A -s 'web' -c '/home/u/a'\\''b'");
+  });
+});
+
 describe("listSessions (fake tmux)", () => {
   function withFakeTmux(script: string): string[] {
     const bin = mkdtempSync(join(tmpdir(), "tbin-"));

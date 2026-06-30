@@ -6,10 +6,17 @@ export function isSafeSessionName(name: string): boolean {
   return SAFE.test(name);
 }
 
-// Attach if the session exists, otherwise create it with that name.
+// POSIX single-quote a string; escape any embedded single quote as '\''.
+function shQuote(s: string): string {
+  return "'" + s.replace(/'/g, "'\\''") + "'";
+}
+
+// Attach if the session exists, otherwise create it with that name (in cwd if given).
 // Name is expected to be validated by isSafeSessionName first; we single-quote defensively.
-export function attachCommand(name: string): string {
-  return `tmux new-session -A -s '${name}'`;
+// `-c cwd` is honored by tmux only on creation; when -A attaches an existing session it is ignored.
+export function attachCommand(name: string, cwd?: string): string {
+  const base = `tmux new-session -A -s ${shQuote(name)}`;
+  return cwd ? `${base} -c ${shQuote(cwd)}` : base;
 }
 
 // Cached + timeout-guarded: the refresh hot-path calls this many times per cycle, so a
