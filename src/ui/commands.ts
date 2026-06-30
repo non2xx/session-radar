@@ -43,6 +43,21 @@ export function registerCommands(context: vscode.ExtensionContext, refresh: () =
     save(M.hideSession(loadLayout(LAYOUT_FILE), s.name));
     refresh();
   });
+  reg("sessionRadar.setPath", async (arg: any) => {
+    const s = sessionArg(arg); if (!s) return;
+    const picked = await vscode.window.showOpenDialog({
+      canSelectFolders: true, canSelectFiles: false, canSelectMany: false,
+      openLabel: "이 폴더를 이 세션의 프로젝트 경로로",
+    });
+    if (!picked || !picked.length) return;
+    save(M.setPath(loadLayout(LAYOUT_FILE), s.name, picked[0].fsPath));
+    refresh();
+  });
+  reg("sessionRadar.clearPath", (arg: any) => {
+    const s = sessionArg(arg); if (!s) return;
+    save(M.clearPath(loadLayout(LAYOUT_FILE), s.name));
+    refresh();
+  });
   reg("sessionRadar.addSession", async () => {
     const l = loadLayout(LAYOUT_FILE);
     const MANUAL = "$(edit) 새 세션 직접 입력…";
