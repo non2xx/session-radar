@@ -34,9 +34,12 @@ export function activate(context: vscode.ExtensionContext) {
         cwd = undefined;
       }
     }
-    const options: vscode.TerminalOptions = opts.split
-      ? { name, location: { viewColumn: vscode.ViewColumn.Beside } } // 에디터 영역 옆에 분할(견고)
-      : { name };                                                     // 일반 단일(패널)
+    // 분할은 항상 에디터 영역에 타일(안정적). 일반 열기 위치는 설정(panel 기본 / editor)에 따름.
+    const loc = vscode.workspace.getConfiguration("sessionRadar").get<string>("terminalLocation", "panel");
+    let options: vscode.TerminalOptions;
+    if (opts.split) options = { name, location: { viewColumn: vscode.ViewColumn.Beside } };       // 옆 칸 타일
+    else if (loc === "editor") options = { name, location: { viewColumn: vscode.ViewColumn.Active } }; // 메인 영역
+    else options = { name };                                                                       // 하단 패널(기본)
     const term = vscode.window.createTerminal(options);
     term.sendText(attachCommand(name, cwd)); // new session → -c cwd, existing tmux → reattach (-c ignored)
     term.show();

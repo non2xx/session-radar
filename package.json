@@ -2,7 +2,7 @@
   "name": "session-radar",
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "icon": "assets/icon.png",
   "keywords": ["claude", "claude code", "tmux", "sessions", "status", "remote"],
@@ -65,6 +65,12 @@
           "type": "boolean",
           "default": true,
           "description": "VS Code 시작 시 직전에 열려 있던 세션 터미널을 자동으로 다시 엽니다."
+        },
+        "sessionRadar.terminalLocation": {
+          "type": "string",
+          "enum": ["panel", "editor"],
+          "default": "panel",
+          "description": "세션 터미널을 여는 위치 — panel(하단 패널, 코드가 메인) 또는 editor(메인 에디터 영역, 터미널이 메인). '분할로 열기'는 설정과 무관하게 항상 에디터 영역에 좌우로 타일됩니다."
         }
       }
     }

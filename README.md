@@ -20,6 +20,9 @@ If you keep a bunch of Claude Code sessions running (one per project, in tmux), 
   - ⚪ **unknown** — no status yet
 - **Auto-discovery** — every running tmux session shows up automatically; organize them into your own groups.
 - **Open or jump** — click a session to focus its terminal if it's open, otherwise open a new one attached to it (`tmux new-session -A` — attach if it exists, create if not).
+- **Split & close from the panel** — right-click → **"분할로 열기"** opens a session **tiled side-by-side in the editor area**; **"분할 닫기"** closes its terminal — a tmux **detach**, so the session stays alive and listed. Manage terminals from session-radar without touching VS Code's own terminal tabs.
+- **Open indicator (●)** — sessions that currently have a live terminal show a ● in both views, updated as terminals open and close.
+- **Terminal location** — `sessionRadar.terminalLocation`: `panel` (default — terminals in the bottom panel, code stays the main area) or `editor` (terminals in the main editor area — handy when terminals *are* your main work). "분할로 열기" always tiles in the editor area.
 - **Project paths** — assign a folder to a session (right-click → "프로젝트 경로 지정"); newly-created sessions start in that folder (`tmux new-session -c`). Existing sessions just reattach, unchanged. Hover a session to see its path.
 - **Auto-reconnect** — on VS Code start/reload, the sessions you've opened reopen automatically. The list lives in `~/.claude/session-radar/open.json` (on the WSL host), so it even survives switching between VS Code Tunnel and Remote-SSH. Toggle with the `sessionRadar.autoReconnect` setting.
 - **Manage from either view** — create / rename / delete groups, rename (display alias) / hide / add sessions, and **drag-and-drop** to reorder or regroup.
