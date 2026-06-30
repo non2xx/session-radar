@@ -5,6 +5,8 @@ import { LAYOUT_FILE, OPEN_FILE } from "./treeProvider";
 import { isSafeSessionName, invalidateSessionCache } from "../core/tmux";
 import { sessionArg, groupArg } from "../core/args";
 import { loadOpen, saveOpen } from "../core/openStore";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const save = (l: ReturnType<typeof loadLayout>) => saveLayout(LAYOUT_FILE, l);
 const newId = () => "g" + Math.random().toString(36).slice(2, 9);
@@ -47,18 +49,26 @@ export function registerCommands(context: vscode.ExtensionContext, refresh: () =
   });
   reg("sessionRadar.setPath", async (arg: any) => {
     const s = sessionArg(arg); if (!s) return;
+    const layout = loadLayout(LAYOUT_FILE);
+    const current = layout.paths[s.name]; // 현재 저장된 경로(있으면 거기서 창을 연다)
     const picked = await vscode.window.showOpenDialog({
       canSelectFolders: true, canSelectFiles: false, canSelectMany: false,
-      openLabel: "이 폴더를 이 세션의 프로젝트 경로로",
+      defaultUri: vscode.Uri.file(current || join(homedir(), "projects")),
+      openLabel: "이 폴더로 지정",
+      title: current ? `'${s.name}' 프로젝트 경로 (현재: ${current})` : `'${s.name}' 프로젝트 경로 지정`,
     });
     if (!picked || !picked.length) return;
-    save(M.setPath(loadLayout(LAYOUT_FILE), s.name, picked[0].fsPath));
+    save(M.setPath(layout, s.name, picked[0].fsPath));
     refresh();
+    vscode.window.showInformationMessage(`'${s.name}' 경로 저장됨: ${picked[0].fsPath}`);
   });
   reg("sessionRadar.clearPath", (arg: any) => {
     const s = sessionArg(arg); if (!s) return;
-    save(M.clearPath(loadLayout(LAYOUT_FILE), s.name));
+    const layout = loadLayout(LAYOUT_FILE);
+    if (!layout.paths[s.name]) { vscode.window.showInformationMessage(`'${s.name}'에 저장된 경로가 없어요.`); return; }
+    save(M.clearPath(layout, s.name));
     refresh();
+    vscode.window.showInformationMessage(`'${s.name}' 경로를 지웠어요.`);
   });
   reg("sessionRadar.addSession", async () => {
     const l = loadLayout(LAYOUT_FILE);
