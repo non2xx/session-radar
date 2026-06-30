@@ -39,9 +39,13 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
       let cwd: string | undefined = loadLayout(LAYOUT_FILE).paths[name];
-      if (cwd && !(existsSync(cwd) && statSync(cwd).isDirectory())) {
-        vscode.window.showWarningMessage(`'${name}'의 저장된 경로가 없어졌어요: ${cwd} — 기본 위치에서 엽니다.`);
-        cwd = undefined;
+      if (cwd) {
+        let ok = false;
+        try { ok = existsSync(cwd) && statSync(cwd).isDirectory(); } catch { ok = false; } // 권한/IO 예외도 폴백
+        if (!ok) {
+          vscode.window.showWarningMessage(`'${name}'의 저장된 경로가 없어졌어요: ${cwd} — 기본 위치에서 엽니다.`);
+          cwd = undefined;
+        }
       }
       const term = vscode.window.createTerminal({ name });
       term.sendText(attachCommand(name, cwd)); // new session → -c cwd, existing → reattach (-c ignored)
@@ -66,7 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
       }
       sub.dispose();
-    }, 2000);
+    }, 3500); // 느린 원격에서 VS Code 자체 터미널 복원을 기다릴 여유(중복 attach 방지)
   }
 
   const watcher = vscode.workspace.createFileSystemWatcher(
