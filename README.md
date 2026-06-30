@@ -20,6 +20,8 @@ If you keep a bunch of Claude Code sessions running (one per project, in tmux), 
   - ⚪ **unknown** — no status yet
 - **Auto-discovery** — every running tmux session shows up automatically; organize them into your own groups.
 - **Open or jump** — click a session to focus its terminal if it's open, otherwise open a new one attached to it (`tmux new-session -A` — attach if it exists, create if not).
+- **Project paths** — assign a folder to a session (right-click → "프로젝트 경로 지정"); newly-created sessions start in that folder (`tmux new-session -c`). Existing sessions just reattach, unchanged. Hover a session to see its path.
+- **Auto-reconnect** — on VS Code start/reload, the sessions you've opened reopen automatically. The list lives in `~/.claude/session-radar/open.json` (on the WSL host), so it even survives switching between VS Code Tunnel and Remote-SSH. Toggle with the `sessionRadar.autoReconnect` setting.
 - **Manage from either view** — create / rename / delete groups, rename (display alias) / hide / add sessions, and **drag-and-drop** to reorder or regroup.
 - **Keyboard** — in the card view, ↑/↓ to move, Enter to open.
 - **Persistent** — your groups, order, and aliases survive restarts.
@@ -56,6 +58,8 @@ node scripts/install-hooks.mjs                        # adds hooks, backs up set
 
 - "waiting" detection relies on Claude Code hook events; the exact events that fire can vary by setup (see `scripts/install-hooks.mjs` for the wired events).
 - Drag/grouping live in the panel; tmux itself is only ever read (`list-sessions`) or attached-to (`new-session -A`).
+- **Auto-reconnect list** only shrinks via "목록에서 삭제" (hide) — closing a terminal tab keeps the session on the list (so a reload always brings it back). If a session was ended or the machine rebooted, it may reopen as an empty shell; hide it to stop that. For the cleanest behavior you can also disable VS Code's own terminal restore (`terminal.integrated.enablePersistentSessions: false`) so session-radar is the sole opener.
+- With two VS Code windows open at once (e.g. Tunnel **and** Remote-SSH), the shared `open.json` is best-effort — a simultaneous change in one window may not be reflected in the other.
 - Personal tool, shared as-is. Built and validated with a plan → review → test workflow.
 
 ## License
