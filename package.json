@@ -34,7 +34,9 @@
       { "command": "sessionRadar.renameSession", "title": "이름변경(별명)" },
       { "command": "sessionRadar.hideSession", "title": "목록에서 삭제" },
       { "command": "sessionRadar.setPath", "title": "프로젝트 경로 지정" },
-      { "command": "sessionRadar.clearPath", "title": "경로 지우기" }
+      { "command": "sessionRadar.clearPath", "title": "경로 지우기" },
+      { "command": "sessionRadar.jumpSplit", "title": "분할로 열기" },
+      { "command": "sessionRadar.closeTerminal", "title": "터미널 닫기" }
     ],
     "menus": {
       "view/title": [
@@ -48,6 +50,8 @@
       "view/item/context": [
         { "command": "sessionRadar.renameGroup", "when": "view == sessionRadar.view && viewItem == group" },
         { "command": "sessionRadar.deleteGroup", "when": "view == sessionRadar.view && viewItem == group" },
+        { "command": "sessionRadar.jumpSplit", "when": "view == sessionRadar.view && viewItem == session" },
+        { "command": "sessionRadar.closeTerminal", "when": "view == sessionRadar.view && viewItem == session" },
         { "command": "sessionRadar.renameSession", "when": "view == sessionRadar.view && viewItem == session" },
         { "command": "sessionRadar.hideSession", "when": "view == sessionRadar.view && viewItem == session" },
         { "command": "sessionRadar.setPath", "when": "view == sessionRadar.view && viewItem == session" },

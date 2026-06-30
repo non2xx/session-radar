@@ -29,6 +29,8 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
       case "hideSession": if (typeof m.name === "string") vscode.commands.executeCommand("sessionRadar.hideSession", { name: m.name }); break;
       case "setPath": if (typeof m.name === "string") vscode.commands.executeCommand("sessionRadar.setPath", { name: m.name }); break;
       case "clearPath": if (typeof m.name === "string") vscode.commands.executeCommand("sessionRadar.clearPath", { name: m.name }); break;
+      case "jumpSplit": if (typeof m.name === "string") vscode.commands.executeCommand("sessionRadar.jumpSplit", { name: m.name }); break;
+      case "closeTerminal": if (typeof m.name === "string") vscode.commands.executeCommand("sessionRadar.closeTerminal", { name: m.name }); break;
       case "renameGroup": if (typeof m.id === "string") vscode.commands.executeCommand("sessionRadar.renameGroup", { id: m.id, name: m.name }); break;
       case "deleteGroup": if (typeof m.id === "string") vscode.commands.executeCommand("sessionRadar.deleteGroup", { id: m.id }); break;
       case "move":
@@ -126,6 +128,8 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   }
   function hideMenu(){menu.style.display='none';}
   function sessionMenu(e,name,label){showMenu(e,[
+    {label:'분할로 열기',run:()=>post({type:'jumpSplit',name})},
+    {label:'터미널 닫기',run:()=>post({type:'closeTerminal',name})},
     {label:'이름변경(별명)',run:()=>post({type:'renameSession',name,label})},
     {label:'그룹에서 빼기(미분류로)',run:()=>post({type:'move',name,targetGroupId:null,beforeName:null})},
     {label:'프로젝트 경로 지정',run:()=>post({type:'setPath',name})},
