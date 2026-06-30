@@ -1,9 +1,10 @@
 import * as vscode from "vscode";
 import { loadLayout, saveLayout } from "../core/layoutStore";
 import * as M from "../core/mutations";
-import { LAYOUT_FILE } from "./treeProvider";
+import { LAYOUT_FILE, OPEN_FILE } from "./treeProvider";
 import { isSafeSessionName, invalidateSessionCache } from "../core/tmux";
 import { sessionArg, groupArg } from "../core/args";
+import { loadOpen, saveOpen } from "../core/openStore";
 
 const save = (l: ReturnType<typeof loadLayout>) => saveLayout(LAYOUT_FILE, l);
 const newId = () => "g" + Math.random().toString(36).slice(2, 9);
@@ -41,6 +42,7 @@ export function registerCommands(context: vscode.ExtensionContext, refresh: () =
   reg("sessionRadar.hideSession", (arg: any) => {
     const s = sessionArg(arg); if (!s) return;
     save(M.hideSession(loadLayout(LAYOUT_FILE), s.name));
+    saveOpen(OPEN_FILE, loadOpen(OPEN_FILE).filter((n) => n !== s.name)); // 자동연결 목록에서도 제거(유일한 제거 경로)
     refresh();
   });
   reg("sessionRadar.setPath", async (arg: any) => {

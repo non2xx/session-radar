@@ -53,6 +53,16 @@
         { "command": "sessionRadar.setPath", "when": "view == sessionRadar.view && viewItem == session" },
         { "command": "sessionRadar.clearPath", "when": "view == sessionRadar.view && viewItem == session" }
       ]
+    },
+    "configuration": {
+      "title": "session-radar",
+      "properties": {
+        "sessionRadar.autoReconnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "VS Code 시작 시 직전에 열려 있던 세션 터미널을 자동으로 다시 엽니다."
+        }
+      }
     }
   },
   "scripts": {
