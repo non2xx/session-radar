@@ -3,7 +3,7 @@ import { dirname } from "node:path";
 import { Layout, Group } from "./types";
 
 export function emptyLayout(): Layout {
-  return { groups: [], ungroupedOrder: [], aliases: {}, hidden: [] };
+  return { groups: [], ungroupedOrder: [], aliases: {}, hidden: [], paths: {} };
 }
 
 export function normalize(raw: any): Layout {
@@ -22,6 +22,9 @@ export function normalize(raw: any): Layout {
     for (const [k, v] of Object.entries(raw.aliases)) if (typeof v === "string") l.aliases[k] = v;
   }
   if (Array.isArray(raw.hidden)) l.hidden = raw.hidden.filter((s: any) => typeof s === "string");
+  if (raw.paths && typeof raw.paths === "object") {
+    for (const [k, v] of Object.entries(raw.paths)) if (typeof v === "string") l.paths[k] = v;
+  }
   return l;
 }
 

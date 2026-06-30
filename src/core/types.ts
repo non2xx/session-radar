@@ -7,6 +7,7 @@ export interface Layout {
   ungroupedOrder: string[];
   aliases: Record<string, string>;
   hidden: string[];
+  paths: Record<string, string>;
 }
 export interface SessionNode {
   name: string;          // real key

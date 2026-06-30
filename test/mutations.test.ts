@@ -42,3 +42,23 @@ describe("mutations", () => {
     expect(l0.groups.length).toBe(0);
   });
 });
+
+describe("setPath/clearPath", () => {
+  it("setPath stores, clearPath removes", () => {
+    let l = emptyLayout();
+    l = M.setPath(l, "web", "/home/u/web");
+    expect(l.paths.web).toBe("/home/u/web");
+    l = M.clearPath(l, "web");
+    expect(l.paths.web).toBeUndefined();
+  });
+  it("setPath with blank clears", () => {
+    let l = M.setPath(emptyLayout(), "web", "/x");
+    l = M.setPath(l, "web", "   ");
+    expect(l.paths.web).toBeUndefined();
+  });
+  it("does not mutate input", () => {
+    const l0 = emptyLayout();
+    M.setPath(l0, "web", "/x");
+    expect(l0.paths).toEqual({});
+  });
+});

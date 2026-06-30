@@ -24,6 +24,14 @@ export function setAlias(l: Layout, name: string, alias: string): Layout {
   if (alias.trim()) n.aliases[name] = alias.trim(); else delete n.aliases[name];
   return n;
 }
+export function setPath(l: Layout, name: string, path: string): Layout {
+  const n = clone(l);
+  if (path.trim()) n.paths[name] = path; else delete n.paths[name];
+  return n;
+}
+export function clearPath(l: Layout, name: string): Layout {
+  const n = clone(l); delete n.paths[name]; return n;
+}
 export function hideSession(l: Layout, name: string): Layout {
   const n = clone(l); removeEverywhere(n, name);
   if (!n.hidden.includes(name)) n.hidden.push(name);

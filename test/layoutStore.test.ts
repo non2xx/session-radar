@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { mkdtempSync, writeFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadLayout, saveLayout, emptyLayout } from "../src/core/layoutStore";
+import { loadLayout, saveLayout, emptyLayout, normalize } from "../src/core/layoutStore";
 
 describe("layoutStore", () => {
   it("round-trips a layout", () => {
@@ -33,5 +33,18 @@ describe("layoutStore", () => {
     const file = join(mkdtempSync(join(tmpdir(), "ly4-")), "layout.json");
     saveLayout(file, emptyLayout());
     expect(existsSync(file + ".tmp")).toBe(false);
+  });
+});
+
+describe("paths in layout", () => {
+  it("emptyLayout has empty paths", () => {
+    expect(emptyLayout().paths).toEqual({});
+  });
+  it("normalize keeps only string path values", () => {
+    const l = normalize({ paths: { web: "/home/u/web", bad: 123, ok: "/x" } });
+    expect(l.paths).toEqual({ web: "/home/u/web", ok: "/x" });
+  });
+  it("normalize tolerates missing paths", () => {
+    expect(normalize({ groups: [] }).paths).toEqual({});
   });
 });
