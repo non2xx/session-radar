@@ -6,6 +6,16 @@ A VS Code extension for running **many Claude Code (CLI) sessions in tmux** — 
 
 ![session-radar preview](assets/preview.png)
 
+## Requirements
+
+session-radar is **not a standalone tool** — it visualizes and controls terminals for a specific setup. Installing it from the Marketplace alone will show an empty panel until you complete a one-time setup:
+
+- **[Claude Code](https://claude.com/claude-code) (CLI)** running in **tmux** sessions.
+- A small **status hook** so each session reports working / waiting / idle (installed via `scripts/install-hooks.mjs`).
+- Usually a **remote / WSL host** reached over VS Code Remote (SSH / Tunnel / WSL), where the extension runs in the remote extension host.
+
+See **[docs/INSTALL.md](docs/INSTALL.md)** for the one-time hook setup. Without tmux + the hook, the panel has nothing to show.
+
 ## Why
 
 If you keep a bunch of Claude Code sessions running (one per project, in tmux), it's hard to tell which one is busy, which is waiting for your input, and which is idle — and tab/terminal lists don't show that. session-radar reads each session's state and puts it all on one panel.
