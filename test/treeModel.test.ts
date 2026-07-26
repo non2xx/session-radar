@@ -10,14 +10,14 @@ describe("buildTree", () => {
     layout.hidden.push("secret");
     const statuses = new Map([
       ["alpha", { state: "working" as const, ts: 5 }],
-      ["beta", { state: "idle" as const, ts: 9 }],
+      ["beta", { state: "turn" as const, ts: 9 }],
     ]);
     const discovered = ["alpha", "beta", "secret"];
     const t = buildTree(layout, statuses, discovered);
     expect(t.groups[0].name).toBe("GroupX");
     expect(t.groups[0].sessions[0]).toEqual({ name: "alpha", label: "Alpha ERP", state: "working", ts: 5 });
     expect(t.ungrouped.map((s) => s.name)).toEqual(["beta"]);
-    expect(t.ungrouped[0].state).toBe("idle");
+    expect(t.ungrouped[0].state).toBe("turn");
   });
   it("unknown state when no status file", () => {
     const t = buildTree(emptyLayout(), new Map(), ["x"]);

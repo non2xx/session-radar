@@ -1,4 +1,4 @@
-export type SessionState = "working" | "waiting" | "idle" | "unknown";
+export type SessionState = "working" | "turn" | "inactive" | "unknown";
 export interface StatusEntry { state: SessionState; ts: number; }
 
 export interface Group { id: string; name: string; sessions: string[]; }

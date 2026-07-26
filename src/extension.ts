@@ -111,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
   watcher.onDidDelete(refreshAll);
   context.subscriptions.push(watcher);
 
-  const timer = setInterval(refreshAll, 5000); // backup poll for remote fs
+  const timer = setInterval(refreshAll, 3000); // poll tmux state (the spinner animation is CSS, so this only re-reads state)
   context.subscriptions.push({ dispose: () => clearInterval(timer) });
 }
 export function deactivate() {}

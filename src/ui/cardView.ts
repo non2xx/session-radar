@@ -57,17 +57,25 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   .gh{padding:7px 10px 3px;font-weight:600;font-size:11.5px;opacity:.9;cursor:default}
   .card{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:2px 6px;
         background:var(--vscode-sideBar-background);border:1px solid var(--vscode-panel-border);
-        border-left-width:3px;border-radius:0;cursor:pointer}
+        border-radius:0;cursor:pointer}
   .card:hover{background:var(--vscode-list-hoverBackground)}
   .card.sel{background:var(--vscode-list-activeSelectionBackground);outline:1px solid var(--vscode-focusBorder);outline-offset:-1px}
   .card.dragover{border-top:2px solid var(--vscode-focusBorder)}
-  .card.working{border-left-color:var(--vscode-charts-red,#e5534b)}
-  .card.waiting{border-left-color:var(--vscode-charts-yellow,#d4a72c)}
-  .card.idle{border-left-color:var(--vscode-charts-green,#57ab5a)}
-  .card.unknown{border-left-color:var(--vscode-descriptionForeground,#888)}
-  .dot{width:8px;height:8px;border-radius:0;flex:0 0 auto}
-  .dot.working{background:var(--vscode-charts-red,#e5534b)} .dot.waiting{background:var(--vscode-charts-yellow,#d4a72c)}
-  .dot.idle{background:var(--vscode-charts-green,#57ab5a)} .dot.unknown{background:transparent;border:1.5px solid var(--vscode-descriptionForeground,#888)}
+  .card.inactive{opacity:.6}
+  .ind{width:16px;height:16px;flex:0 0 auto;display:grid;place-items:center;position:relative}
+  /* 작업중: 도는 스피너 링 */
+  .ring{width:12px;height:12px;border-radius:50%;box-sizing:border-box;
+        border:2px solid rgba(63,185,80,.25);border-top-color:var(--vscode-charts-green,#3fb950);
+        animation:sr-spin .8s linear infinite}
+  /* 내 차례: 앰버 점 + 퍼지는 링 */
+  .tdot{width:9px;height:9px;border-radius:50%;background:var(--vscode-charts-yellow,#e3b341);position:relative}
+  .tdot::after{content:"";position:absolute;inset:0;border-radius:50%;
+        box-shadow:0 0 0 2px var(--vscode-charts-yellow,#e3b341);animation:sr-halo 1.6s ease-out infinite}
+  /* 비활성: 회색 빈 점 */
+  .idot{width:8px;height:8px;border-radius:50%;background:transparent;border:1.5px solid var(--vscode-descriptionForeground,#6e7681)}
+  @keyframes sr-spin{to{transform:rotate(360deg)}}
+  @keyframes sr-halo{0%{transform:scale(1);opacity:.6}100%{transform:scale(2.5);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.ring{animation:none}.tdot::after{animation:none}}
   .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ago{color:var(--vscode-descriptionForeground);font-size:10.5px}
   .empty{padding:12px;color:var(--vscode-descriptionForeground)}
@@ -83,7 +91,8 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   let flat=[],sel=0,selName=null,drag=null;
   function ago(ts){const m=Math.max(0,Math.round((Date.now()/1000-ts)/60));return m+'m';}
   function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
-  function cls(s){return ['working','waiting','idle'].indexOf(s)>=0?s:'unknown';}
+  function cls(s){return s==='working'?'working':s==='turn'?'turn':'inactive';}
+  function ind(st){return st==='working'?'<span class="ind"><span class="ring"></span></span>':st==='turn'?'<span class="ind"><span class="tdot"></span></span>':'<span class="ind"><span class="idot"></span></span>';}
   function post(o){vscode.postMessage(o);}
   function render(data, open){
     const openSet=new Set(open||[]);
@@ -101,7 +110,7 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
         const idx=flat.length;flat.push(s.name);const st=cls(s.state);
         const card=document.createElement('div');card.className='card '+st;card.draggable=true;
         const om=openSet.has(s.name)?'● ':'';
-        card.innerHTML='<span class="dot '+st+'"></span><span class="nm">'+esc(s.label)+'</span><span class="ago">'+om+(s.ts?ago(s.ts):'')+'</span>';
+        card.innerHTML=ind(st)+'<span class="nm">'+esc(s.label)+'</span><span class="ago">'+om+(st!=='inactive'&&s.ts?ago(s.ts):'')+'</span>';
         const tip=[];if(s.label!==s.name)tip.push(s.name);if(s.path)tip.push('📁 '+s.path);if(tip.length)card.title=tip.join('\\n');
         card.addEventListener('click',()=>{sel=idx;selName=s.name;updateSel();post({type:'jump',name:s.name});});
         card.addEventListener('contextmenu',e=>{e.preventDefault();sessionMenu(e,s.name,s.label);});

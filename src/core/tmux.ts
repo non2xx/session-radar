@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { SessionState, StatusEntry } from "./types";
 
 const SAFE = /^[A-Za-z0-9._-]+$/;
 
@@ -44,4 +45,59 @@ export function listSessions(ttlMs = 3000): string[] {
 // (used right after creating a session so the panel shows it without waiting for TTL).
 export function invalidateSessionCache(): void {
   _cache = null;
+}
+
+// ---- Live pane state, read straight from tmux (ground truth) ----
+// The hook-written status files go stale between events (a long tool run fires no
+// hook, so the file freezes). tmux always knows the truth: whether `claude` is the
+// foreground process, and Claude's own title glyph (braille spinner = working, ✳ = idle).
+
+function firstGlyph(title: string): string {
+  const t = title.replace(/^\s+/, "");
+  return t ? [...t][0] : "";
+}
+// Claude's working spinner is animated braille (U+2800–U+28FF); any frame means "working".
+function isSpinnerGlyph(ch: string): boolean {
+  const c = ch.codePointAt(0);
+  return c !== undefined && c >= 0x2800 && c <= 0x28ff;
+}
+const rank = (s: SessionState): number => (s === "working" ? 3 : s === "turn" ? 2 : 1);
+
+// Parse `#{session_name}\t#{pane_current_command}\t#{pane_title}\t#{window_activity}` lines.
+// A session with multiple panes takes its strongest state (working > turn > inactive).
+export function parsePaneStates(raw: string): Map<string, StatusEntry> {
+  const out = new Map<string, StatusEntry>();
+  for (const line of raw.split("\n")) {
+    if (!line) continue;
+    const parts = line.split("\t");
+    if (parts.length < 4) continue;
+    const name = parts[0];
+    const cmd = parts[1];
+    const activity = parseInt(parts[parts.length - 1], 10) || 0; // window_activity (unix secs)
+    const title = parts.slice(2, -1).join("\t"); // title may itself contain tabs
+    const g = firstGlyph(title);
+    const spinner = isSpinnerGlyph(g);
+    const claudeRunning = cmd === "claude" || spinner || g === "✳";
+    const state: SessionState = claudeRunning ? (spinner ? "working" : "turn") : "inactive";
+    const prev = out.get(name);
+    if (!prev) out.set(name, { state, ts: activity });
+    else out.set(name, {
+      state: rank(state) > rank(prev.state) ? state : prev.state,
+      ts: Math.max(prev.ts, activity),
+    });
+  }
+  return out;
+}
+
+export function readPaneStates(): Map<string, StatusEntry> {
+  try {
+    const out = execFileSync(
+      "tmux",
+      ["list-panes", "-a", "-F", "#{session_name}\t#{pane_current_command}\t#{pane_title}\t#{window_activity}"],
+      { encoding: "utf8", timeout: 1000 },
+    );
+    return parsePaneStates(out);
+  } catch {
+    return new Map(); // no tmux server / tmux not installed / timed out
+  }
 }

@@ -1,13 +1,11 @@
 import * as vscode from "vscode";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { readdirSync } from "node:fs";
-import { readStatuses } from "../core/statusReader";
 import { loadLayout, saveLayout } from "../core/layoutStore";
 import { buildTree } from "../core/treeModel";
 import { moveSession } from "../core/mutations";
 import { computeContainerOrder } from "../core/order";
-import { listSessions } from "../core/tmux";
+import { listSessions, readPaneStates } from "../core/tmux";
 import { SessionState, SessionNode, TreeData } from "../core/types";
 
 export const STATUS_DIR = join(homedir(), ".claude", "session-status");
@@ -22,25 +20,21 @@ export type Item =
 
 function statusIcon(state: SessionState): vscode.ThemeIcon {
   switch (state) {
-    case "working": return new vscode.ThemeIcon("loading~spin", new vscode.ThemeColor("charts.red"));
-    case "waiting": return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.yellow"));
-    case "idle": return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.green"));
-    default: return new vscode.ThemeIcon("circle-outline");
+    case "working": return new vscode.ThemeIcon("loading~spin", new vscode.ThemeColor("charts.green"));
+    case "turn":    return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.yellow"));
+    default:        return new vscode.ThemeIcon("circle-outline", new vscode.ThemeColor("disabledForeground")); // inactive/unknown
   }
 }
 
 function discover(): string[] {
-  const names = new Set<string>();
-  try {
-    for (const f of readdirSync(STATUS_DIR)) if (f.endsWith(".json")) names.add(f.slice(0, -5));
-  } catch { /* no status dir yet */ }
-  for (const s of listSessions()) names.add(s); // live tmux sessions (even without a status file)
-  return [...names];
+  // tmux is the source of truth now: a session shows if it's a live tmux session.
+  // (Layout-configured sessions are added by buildTree regardless of tmux.)
+  return [...new Set(listSessions())];
 }
 
 // Shared by the tree view and the card view so both render identical data.
 export function getTreeData(): TreeData {
-  return buildTree(loadLayout(LAYOUT_FILE), readStatuses(STATUS_DIR), discover());
+  return buildTree(loadLayout(LAYOUT_FILE), readPaneStates(), discover());
 }
 
 // Shared by tree drop and card drop: move sessions into a container at a position.
@@ -86,7 +80,7 @@ export class SessionRadarProvider
     const isOpen = vscode.window.terminals.some((term) => term.name === e.node.name);
     const parts: string[] = [];
     if (isOpen) parts.push("●"); // 터미널이 열려 있음(존재 기준)
-    if (e.node.ts) {
+    if (e.node.ts && e.node.state !== "inactive") { // 카드 뷰와 동일: 비활성엔 경과시간 숨김
       const mins = Math.max(0, Math.round((Date.now() / 1000 - e.node.ts) / 60));
       parts.push(`${mins}m`);
     }
