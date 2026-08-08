@@ -2,6 +2,8 @@ import * as vscode from "vscode";
 import { mkdirSync, existsSync, statSync } from "node:fs";
 import { SessionRadarProvider, STATUS_DIR, LAYOUT_FILE, OPEN_FILE } from "./ui/treeProvider";
 import { registerCommands } from "./ui/commands";
+import { registerImageCompare } from "./ui/imageCompare";
+import { registerImageLinks } from "./ui/imageLinks";
 import { CardViewProvider } from "./ui/cardView";
 import { isSafeSessionName, attachCommand } from "./core/tmux";
 import { loadLayout } from "./core/layoutStore";
@@ -79,6 +81,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   registerCommands(context, refreshAll);
+  registerImageCompare(context);
+  registerImageLinks(context);
 
   // 터미널이 열리거나 닫히면 두 뷰의 "열림(●)" 표시를 갱신.
   context.subscriptions.push(

@@ -2,7 +2,7 @@
   "name": "session-radar",
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
-  "version": "0.3.1",
+  "version": "0.4.2",
   "license": "MIT",
   "icon": "assets/icon.png",
   "keywords": ["claude", "claude code", "tmux", "sessions", "status", "remote"],
@@ -11,7 +11,7 @@
   "repository": { "type": "git", "url": "https://github.com/non2xx/session-radar.git" },
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other"],
-  "activationEvents": ["onView:sessionRadar.view", "onView:sessionRadar.cards"],
+  "activationEvents": ["onView:sessionRadar.view", "onView:sessionRadar.cards", "onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
@@ -36,7 +36,10 @@
       { "command": "sessionRadar.setPath", "title": "프로젝트 경로 지정" },
       { "command": "sessionRadar.clearPath", "title": "경로 지우기" },
       { "command": "sessionRadar.jumpSplit", "title": "분할로 열기" },
-      { "command": "sessionRadar.closeTerminal", "title": "분할 닫기" }
+      { "command": "sessionRadar.closeTerminal", "title": "분할 닫기" },
+      { "command": "sessionRadar.compareImages", "title": "이미지 나란히 보기", "icon": "$(file-media)" },
+      { "command": "sessionRadar.compareImagesAdd", "title": "이미지 비교에 추가" },
+      { "command": "sessionRadar.resetImageColumns", "title": "이미지 칸 배치 처음부터" }
     ],
     "menus": {
       "view/title": [
@@ -45,7 +48,9 @@
         { "command": "sessionRadar.refresh", "when": "view == sessionRadar.view", "group": "navigation" },
         { "command": "sessionRadar.addGroup", "when": "view == sessionRadar.cards", "group": "navigation" },
         { "command": "sessionRadar.addSession", "when": "view == sessionRadar.cards", "group": "navigation" },
-        { "command": "sessionRadar.refresh", "when": "view == sessionRadar.cards", "group": "navigation" }
+        { "command": "sessionRadar.refresh", "when": "view == sessionRadar.cards", "group": "navigation" },
+        { "command": "sessionRadar.compareImages", "when": "view == sessionRadar.view", "group": "navigation" },
+        { "command": "sessionRadar.compareImages", "when": "view == sessionRadar.cards", "group": "navigation" }
       ],
       "view/item/context": [
         { "command": "sessionRadar.renameGroup", "when": "view == sessionRadar.view && viewItem == group" },
@@ -71,6 +76,18 @@
           "enum": ["panel", "editor"],
           "default": "panel",
           "description": "세션 터미널을 여는 위치 — panel(하단 패널, 코드가 메인) 또는 editor(메인 에디터 영역, 터미널이 메인). '분할로 열기'는 설정과 무관하게 항상 에디터 영역에 좌우로 타일됩니다."
+        },
+        "sessionRadar.imageSplitOnClick": {
+          "type": "boolean",
+          "default": true,
+          "description": "터미널에서 이미지 경로를 Ctrl+클릭하면 새 탭 대신 옆 칸에 나란히 엽니다. 끄면 VS Code 기본 동작(새 탭)으로 돌아갑니다."
+        },
+        "sessionRadar.imageColumns": {
+          "type": "number",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 5,
+          "description": "이미지를 몇 칸까지 나란히 펼칠지. 이 수를 넘으면 첫 칸부터 다시 채웁니다."
         }
       }
     }
