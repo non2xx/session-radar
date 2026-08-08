@@ -4,15 +4,15 @@ import { pickColumn } from "../src/core/imageColumns";
 /** 편집기 칸들의 "탭 개수" 목록을 흉내낸다. [0] = 빈 칸 하나. */
 describe("pickColumn — 이미지를 어느 칸에 열까", () => {
   it("편집기가 비어 있으면 1번 칸을 쓴다 (빈 탭을 남기지 않는다)", () => {
-    expect(pickColumn([0], [], 3, 0)).toEqual({ col: 1, used: [1] });
+    expect(pickColumn([0], [], 3, 0)).toEqual({ col: 1, used: [1], reused: false });
   });
 
   it("칸이 아예 없어도 1번 칸", () => {
-    expect(pickColumn([], [], 3, 0)).toEqual({ col: 1, used: [1] });
+    expect(pickColumn([], [], 3, 0)).toEqual({ col: 1, used: [1], reused: false });
   });
 
   it("코드가 열려 있으면 그 옆(2번) 칸", () => {
-    expect(pickColumn([1], [], 3, 0)).toEqual({ col: 2, used: [2] });
+    expect(pickColumn([1], [], 3, 0)).toEqual({ col: 2, used: [2], reused: false });
   });
 
   it("연달아 누르면 오른쪽으로 한 칸씩 늘린다 (max 는 '이미지 칸' 수)", () => {
@@ -56,10 +56,9 @@ describe("pickColumn — 이미지를 어느 칸에 열까", () => {
     let cycle = 0;
     let counts = [1]; // 코드 1칸이 열려 있는 상태
     const click = () => {
-      const wasFull = batch.filter((c) => c <= counts.length).length >= max;
-      const p = pickColumn(counts, batch, max, cycle);
+      const p = pickColumn(counts, batch, max, cycle);   // 판정을 베끼지 않고 진짜 함수가 돌려주는 값을 쓴다
       batch = p.used;
-      if (wasFull) cycle++;
+      if (p.reused) cycle++;
       if (p.col > counts.length) counts = [...counts, 1]; // 새 칸이 생김
       return p.col;
     };

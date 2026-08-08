@@ -9,15 +9,21 @@ function getNonce(): string {
 
 export class CardViewProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
-  constructor(private readonly refreshAll: () => void) {}
+  /**
+   * "이 창에서 뷰를 봤다"는 신호. 자동 재접속·상태 폴링의 시작 조건이다.
+   * 트리 뷰만 보고 판단하면, 트리를 접고 카드만 쓰는 창에서는 영영 시작되지 않아
+   * 세션이 자동으로 안 열리고 상태가 처음 그린 채로 멈춘다(README 가 "안 쓰는 뷰는 접으라"고 권한다).
+   */
+  constructor(private readonly refreshAll: () => void, private readonly onShown?: () => void) {}
 
   resolveWebviewView(view: vscode.WebviewView): void {
     this.view = view;
     view.webview.options = { enableScripts: true };
     view.webview.html = this.html();
     view.webview.onDidReceiveMessage((m) => this.onMessage(m));
-    view.onDidChangeVisibility(() => { if (view.visible) this.refresh(); });
+    view.onDidChangeVisibility(() => { if (view.visible) { this.onShown?.(); this.refresh(); } });
     view.onDidDispose(() => { this.view = undefined; });
+    if (view.visible) this.onShown?.();
   }
 
   private onMessage(m: any): void {

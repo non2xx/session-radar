@@ -15,7 +15,7 @@ describe("parsePaneStates", () => {
   });
 
   it("plain shell (claude not running) → inactive", () => {
-    expect(parsePaneStates(line("ppt-maker", "bash", "mokgam")).get("ppt-maker")?.state).toBe("inactive");
+    expect(parsePaneStates(line("ppt-maker", "bash", "host")).get("ppt-maker")?.state).toBe("inactive");
   });
 
   it("detects claude by title glyph even when command isn't literally 'claude'", () => {

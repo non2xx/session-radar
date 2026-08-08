@@ -11,23 +11,23 @@ A VS Code extension for running **many Claude Code (CLI) sessions in tmux** — 
 session-radar is **not a standalone tool** — it visualizes and controls terminals for a specific setup. Installing it from the Marketplace alone will show an empty panel until you complete a one-time setup:
 
 - **[Claude Code](https://claude.com/claude-code) (CLI)** running in **tmux** sessions.
-- A small **status hook** so each session reports working / waiting / idle (installed via `scripts/install-hooks.mjs`).
+- `tmux` on the host, reachable from the extension host (status is read with `tmux list-panes`). No hook or agent to install.
 - Usually a **remote / WSL host** reached over VS Code Remote (SSH / Tunnel / WSL), where the extension runs in the remote extension host.
 
-See **[docs/INSTALL.md](docs/INSTALL.md)** for the one-time hook setup. Without tmux + the hook, the panel has nothing to show.
+See **[docs/INSTALL.md](docs/INSTALL.md)** for the one-time setup. Without tmux, the panel has nothing to show.
 
 ## Why
 
-If you keep a bunch of Claude Code sessions running (one per project, in tmux), it's hard to tell which one is busy, which is waiting for your input, and which is idle — and tab/terminal lists don't show that. session-radar reads each session's state and puts it all on one panel.
+If you keep a bunch of Claude Code sessions running (one per project, in tmux), it's hard to tell which one is busy, which one is waiting on you, and which one is doing nothing: tab and terminal lists don't show that. session-radar reads each session's state and puts it all on one panel.
 
 ## Features
 
 - **Two views, your choice** — a native **tree** view and a compact **card** view, side by side (collapse whichever you don't use).
-- **Live status** per session:
-  - 🔴 **working** — Claude is processing
-  - 🟡 **waiting** — Claude needs your input (a question / permission)
-  - 🟢 **idle** — finished, your turn
-  - ⚪ **unknown** — no status yet
+- **Live status** per session, read from the tmux pane title Claude itself sets:
+  - 🔴 **working** — Claude is processing (its title shows the animated braille spinner)
+  - 🟡 **turn** — your turn (Claude is running, spinner stopped: it answered, or it is asking you something)
+  - ⚪ **inactive** — Claude isn't running in that session (a plain shell)
+  - ⚪ **unknown** — tmux couldn't be read (not installed / no server / timed out)
 - **Auto-discovery** — every running tmux session shows up automatically; organize them into your own groups.
 - **Open or jump** — click a session to focus its terminal if it's open, otherwise open a new one attached to it (`tmux new-session -A` — attach if it exists, create if not).
 - **Split & close from the panel** — right-click → **"분할로 열기"** opens a session **tiled side-by-side in the editor area**; **"분할 닫기"** closes its terminal — a tmux **detach**, so the session stays alive and listed. Manage terminals from session-radar without touching VS Code's own terminal tabs.
@@ -44,13 +44,13 @@ If you keep a bunch of Claude Code sessions running (one per project, in tmux), 
 
 ## How it works
 
-A small Claude Code **hook** writes each session's state to `~/.claude/session-status/<name>.json` whenever it changes. The extension watches that folder and renders the panel. Your layout (groups, order, aliases, hidden) lives in `~/.claude/session-radar/layout.json` (atomic writes with a backup).
+Every few seconds the extension runs `tmux list-panes` across all sessions and reads each pane's **foreground command and title**. Claude Code puts an animated braille spinner in its title while it is working and a `✳` when it is your turn, so the title alone tells the state: no hook, no daemon, nothing writing files. A session with several panes takes its strongest state (working > turn > inactive). Your layout (groups, order, aliases, hidden) lives in `~/.claude/session-radar/layout.json` (atomic writes with a backup).
 
-The identity key throughout is the **tmux session name** (= the terminal name = the status-file name), so status, grouping, and "jump" all line up.
+The identity key throughout is the **tmux session name** (= the terminal name), so status, grouping, and "jump" all line up.
 
 ```
-Claude hook ─▶ ~/.claude/session-status/<name>.json ─▶ extension watches ─▶ panel
-layout.json (groups / order / aliases) ─────────────────────────────────┘
+tmux list-panes (command + title) ─▶ extension polls ─▶ panel
+layout.json (groups / order / aliases) ─────────────┘
 click a session ─▶ focus its terminal, or open `tmux new-session -A -s <name>`
 ```
 
@@ -58,20 +58,18 @@ The extension runs in the **remote (WSL) extension host** so it can read those f
 
 ## Install
 
-See **[docs/INSTALL.md](docs/INSTALL.md)**: build the `.vsix`, drop in the hook script, wire the hooks (existing hooks are preserved), and install the extension on the remote host.
+See **[docs/INSTALL.md](docs/INSTALL.md)**: build the `.vsix` and install it on the remote host.
 
 Quick version:
 
 ```bash
 npm install && npm run build && npm run package      # → session-radar.vsix
-cp scripts/session-status.sh ~/.claude/session-status.sh && chmod +x ~/.claude/session-status.sh
-node scripts/install-hooks.mjs                        # adds hooks, backs up settings.json
 # then: VS Code → "Extensions: Install from VSIX…" → session-radar.vsix → Reload Window
 ```
 
 ## Notes
 
-- "waiting" detection relies on Claude Code hook events; the exact events that fire can vary by setup (see `scripts/install-hooks.mjs` for the wired events).
+- Status comes from the tmux pane title, so a session whose title Claude doesn't set (or a terminal not started through tmux) shows as **inactive** even if something is running in it.
 - Drag/grouping live in the panel; tmux itself is only ever read (`list-sessions`) or attached-to (`new-session -A`).
 - **Auto-reconnect list** only shrinks via "목록에서 삭제" (hide) — closing a terminal tab keeps the session on the list (so a reload always brings it back). If a session was ended or the machine rebooted, it may reopen as an empty shell; hide it to stop that. For the cleanest behavior you can also disable VS Code's own terminal restore (`terminal.integrated.enablePersistentSessions: false`) so session-radar is the sole opener.
 - With two VS Code windows open at once (e.g. Tunnel **and** Remote-SSH), the shared `open.json` is best-effort — a simultaneous change in one window may not be reflected in the other.

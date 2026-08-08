@@ -22,6 +22,30 @@ function groups(): readonly { tabs: readonly unknown[] }[] {
 export function registerImageLinks(context: vscode.ExtensionContext) {
   const cfg = () => vscode.workspace.getConfiguration("sessionRadar");
   const roots = () => (vscode.workspace.workspaceFolders ?? []).map((f) => f.uri.fsPath);
+  let chain: Promise<void> = Promise.resolve(); // 클릭 처리를 한 줄로 세우는 대기줄
+
+  const openOne = async (link: ImageLink): Promise<void> => {
+    const max = Math.max(1, Math.min(5, cfg().get<number>("imageColumns", 3)));
+    const now = Date.now();
+    // 한동안 안 눌렀으면 새 묶음으로 보고 처음부터 다시 채운다.
+    if (now - lastClickAt > BATCH_GAP_MS) { batch = []; cycle = 0; }
+    lastClickAt = now;
+
+    const counts = groups().map((g) => g.tabs.length);
+    const picked = pickColumn(counts, batch, max, cycle);
+    batch = picked.used;
+    if (picked.reused) cycle++; // 실제로 재사용한 클릭에서만 올린다(칸을 채운 클릭에서 올리면 한 칸씩 밀린다)
+
+    // preserveFocus: 터미널에 초점을 남겨 다음 링크를 바로 이어서 누를 수 있게.
+    try {
+      await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(link.file), {
+        viewColumn: picked.col,
+        preserveFocus: true,
+      });
+    } catch (e) {
+      vscode.window.showWarningMessage(`이미지를 열지 못했어요: ${link.file} (${e})`);
+    }
+  };
 
   const provider: vscode.TerminalLinkProvider<ImageLink> = {
     provideTerminalLinks(ctx) {
@@ -39,30 +63,13 @@ export function registerImageLinks(context: vscode.ExtensionContext) {
       }
       return links;
     },
-    // async 로 await 한다. 안 기다리면 다음 클릭이 들어올 때 새 칸이 아직 안 만들어져 있어
-    // 칸 수 계산이 옛 값이 되고, 방금 쓴 칸을 또 골라 한 칸에 탭으로 쌓인다(연속 클릭이 이 기능의 핵심 동선이다).
-    async handleTerminalLink(link) {
-      const max = Math.max(1, Math.min(5, cfg().get<number>("imageColumns", 3)));
-      const now = Date.now();
-      // 한동안 안 눌렀으면 새 묶음으로 보고 처음부터 다시 채운다.
-      if (now - lastClickAt > BATCH_GAP_MS) { batch = []; cycle = 0; }
-      lastClickAt = now;
-
-      const counts = groups().map((g) => g.tabs.length);
-      const wasFull = batch.filter((c) => c <= counts.length).length >= max;
-      const picked = pickColumn(counts, batch, max, cycle);
-      batch = picked.used;
-      if (wasFull) cycle++; // 실제로 재사용한 클릭에서만 올린다(마지막 칸을 채운 클릭에서 올리면 한 칸씩 밀린다)
-
-      // preserveFocus: 터미널에 초점을 남겨 다음 링크를 바로 이어서 누를 수 있게.
-      try {
-        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(link.file), {
-          viewColumn: picked.col,
-          preserveFocus: true,
-        });
-      } catch (e) {
-        vscode.window.showWarningMessage(`이미지를 열지 못했어요: ${link.file}`);
-      }
+    // 클릭 처리를 확장 안에서 한 줄로 세운다.
+    // 앞 클릭의 칸이 실제로 만들어진 뒤에 다음 클릭이 칸 수를 세야 한다. VS Code 가 핸들러 호출을
+    // 줄 세워 준다는 보장이 API 에 없어서, 안 세우면 느린 원격에서 한 칸에 탭으로 쌓인다
+    // (연속 클릭이 이 기능의 핵심 동선이라 그러면 없애려던 불편으로 되돌아간다).
+    handleTerminalLink(link) {
+      chain = chain.then(() => openOne(link));
+      return chain;
     },
   };
 

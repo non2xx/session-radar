@@ -49,7 +49,9 @@ export function activate(context: vscode.ExtensionContext) {
   };
   let card: CardViewProvider;
   const refreshAll = () => { provider.refresh(); card.refresh(); };
-  card = new CardViewProvider(refreshAll);
+  // 두 뷰가 같은 시작 조건을 쓴다. 실제 구현은 아래에서 채운다(뷰보다 뒤에 만들어져서).
+  let startViewWork: () => void = () => {};
+  card = new CardViewProvider(refreshAll, () => startViewWork());
   provider.onChanged = refreshAll; // tree drag refreshes both views
 
   mkdirSync(STATUS_DIR, { recursive: true }); // ensure dir exists before watching
@@ -125,14 +127,15 @@ export function activate(context: vscode.ExtensionContext) {
   // 나머지는 뷰를 켜기 전까지 아무 일도 하지 않는다.
   let timer: ReturnType<typeof setInterval> | undefined;
   let started = false;
-  const startViewWork = () => {
+  startViewWork = () => {
     if (started) return;
     started = true;
     autoReconnect();
     timer = setInterval(refreshAll, 3000); // (the spinner animation is CSS, so this only re-reads state)
   };
+  // 트리 뷰와 카드 뷰 중 **어느 쪽이든** 보이면 시작한다. 카드 쪽 신호는 CardViewProvider 가 보낸다.
   if (view.visible) startViewWork();
-  else context.subscriptions.push(view.onDidChangeVisibility((e) => { if (e.visible) startViewWork(); }));
+  context.subscriptions.push(view.onDidChangeVisibility((e) => { if (e.visible) startViewWork(); }));
   context.subscriptions.push({ dispose: () => { if (timer) clearInterval(timer); } });
 }
 export function deactivate() {}

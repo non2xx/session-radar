@@ -10,19 +10,22 @@
  * @param used           이번 묶음에서 이미 쓴 칸 번호들
  * @param max            몇 칸까지 펼칠지
  * @param cycleAt        칸이 꽉 찼을 때 몇 번째 재사용인지
+ *
+ * `reused` 는 "이번이 새 칸이 아니라 기존 칸 재사용인가". 호출부는 이 값이 참일 때만
+ * cycleAt 을 올린다. 이 판정을 호출부에 두면 여기 규칙과 어긋나 재사용 순서가 밀린다.
  */
 export function pickColumn(
   groupTabCounts: number[],
   used: number[],
   max: number,
   cycleAt: number,
-): { col: number; used: number[] } {
+): { col: number; used: number[]; reused: boolean } {
   const n = groupTabCounts.length;
   const alive = used.filter((c) => c <= n); // 닫혀서 없어진 칸은 뺀다
   if (alive.length >= max) {
-    return { col: alive[cycleAt % alive.length], used: alive };
+    return { col: alive[cycleAt % alive.length], used: alive, reused: true };
   }
   const lastEmpty = n > 0 && groupTabCounts[n - 1] === 0;
   const col = lastEmpty ? n : n + 1;
-  return { col, used: alive.includes(col) ? alive : [...alive, col] };
+  return { col, used: alive.includes(col) ? alive : [...alive, col], reused: false };
 }
