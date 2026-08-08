@@ -67,8 +67,11 @@ export function registerImageLinks(context: vscode.ExtensionContext) {
     // 앞 클릭의 칸이 실제로 만들어진 뒤에 다음 클릭이 칸 수를 세야 한다. VS Code 가 핸들러 호출을
     // 줄 세워 준다는 보장이 API 에 없어서, 안 세우면 느린 원격에서 한 칸에 탭으로 쌓인다
     // (연속 클릭이 이 기능의 핵심 동선이라 그러면 없애려던 불편으로 되돌아간다).
+    // catch 를 먼저 거는 게 핵심 — 약속(promise) 사슬은 한 번 실패하면 뒤에 붙는 일이
+    // 아예 실행되지 않는다. 없으면 클릭 한 번이 예외로 끝난 뒤 그 창에서는 이후 클릭이
+    // 조용히 전부 무시되고, Reload 전에는 안 돌아온다.
     handleTerminalLink(link) {
-      chain = chain.then(() => openOne(link));
+      chain = chain.catch(() => {}).then(() => openOne(link));
       return chain;
     },
   };

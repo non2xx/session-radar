@@ -18,6 +18,12 @@ describe("parsePaneStates", () => {
     expect(parsePaneStates(line("ppt-maker", "bash", "host")).get("ppt-maker")?.state).toBe("inactive");
   });
 
+  it("★ 클로드를 끝낸 뒤 남은 제목에 속지 않는다 (셸이면 무조건 비활성)", () => {
+    // tmux 는 프로그램이 끝나도 창 제목을 지우지 않는다 → 죽은 세션이 '내 차례'로 굳던 문제
+    expect(parsePaneStates(line("note", "bash", "✳ note")).get("note")?.state).toBe("inactive");
+    expect(parsePaneStates(line("note", "zsh", "⠋ note")).get("note")?.state).toBe("inactive");
+  });
+
   it("detects claude by title glyph even when command isn't literally 'claude'", () => {
     expect(parsePaneStates(line("x", "node", "⠹ building")).get("x")?.state).toBe("working");
   });

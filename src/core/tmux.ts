@@ -50,7 +50,13 @@ export function invalidateSessionCache(): void {
 // ---- Live pane state, read straight from tmux (ground truth) ----
 // The hook-written status files go stale between events (a long tool run fires no
 // hook, so the file freezes). tmux always knows the truth: whether `claude` is the
-// foreground process, and Claude's own title glyph (braille spinner = working, ✳ = idle).
+// foreground process, and Claude's own title glyph (braille spinner = working, ✳ = turn).
+
+// tmux keeps the last pane title after the program that set it exits, and inside tmux the
+// distro .bashrc does not repaint it (its title code only runs for TERM=xterm*). So a pane
+// where Claude has quit can sit there wearing "✳ name" forever and read as "your turn".
+// The foreground command is the reliable tie-breaker: a bare shell is never Claude.
+const SHELLS = new Set(["bash", "zsh", "sh", "fish", "dash", "ksh", "tmux"]);
 
 function firstGlyph(title: string): string {
   const t = title.replace(/^\s+/, "");
@@ -77,7 +83,7 @@ export function parsePaneStates(raw: string): Map<string, StatusEntry> {
     const title = parts.slice(2, -1).join("\t"); // title may itself contain tabs
     const g = firstGlyph(title);
     const spinner = isSpinnerGlyph(g);
-    const claudeRunning = cmd === "claude" || spinner || g === "✳";
+    const claudeRunning = cmd === "claude" || (!SHELLS.has(cmd) && (spinner || g === "✳"));
     const state: SessionState = claudeRunning ? (spinner ? "working" : "turn") : "inactive";
     const prev = out.get(name);
     if (!prev) out.set(name, { state, ts: activity });

@@ -6,6 +6,8 @@ A VS Code extension for running **many Claude Code (CLI) sessions in tmux** — 
 
 ![session-radar preview](assets/preview.png)
 
+*(Screenshot predates the current card design and status colours.)*
+
 ## Requirements
 
 session-radar is **not a standalone tool** — it visualizes and controls terminals for a specific setup. Installing it from the Marketplace alone will show an empty panel until you complete a one-time setup:
@@ -24,10 +26,10 @@ If you keep a bunch of Claude Code sessions running (one per project, in tmux), 
 
 - **Two views, your choice** — a native **tree** view and a compact **card** view, side by side (collapse whichever you don't use).
 - **Live status** per session, read from the tmux pane title Claude itself sets:
-  - 🔴 **working** — Claude is processing (its title shows the animated braille spinner)
-  - 🟡 **turn** — your turn (Claude is running, spinner stopped: it answered, or it is asking you something)
-  - ⚪ **inactive** — Claude isn't running in that session (a plain shell)
-  - ⚪ **unknown** — tmux couldn't be read (not installed / no server / timed out)
+  - **spinning ring (green)** — *working*: Claude is processing (its tmux title shows the animated braille spinner)
+  - **filled dot (yellow)** — *turn*: your turn. Claude is running with the spinner stopped, so it either answered or is asking you something
+  - **hollow dot (grey)** — *inactive*: Claude isn't running there (a plain shell)
+  - **hollow dot (grey)** — *unknown*: no tmux session by that name right now. Usually it ended (or the machine rebooted) and the name is still on your list, so "목록에서 삭제" clears it. It also covers tmux being unreadable (not installed / no server / timed out).
 - **Auto-discovery** — every running tmux session shows up automatically; organize them into your own groups.
 - **Open or jump** — click a session to focus its terminal if it's open, otherwise open a new one attached to it (`tmux new-session -A` — attach if it exists, create if not).
 - **Split & close from the panel** — right-click → **"분할로 열기"** opens a session **tiled side-by-side in the editor area**; **"분할 닫기"** closes its terminal — a tmux **detach**, so the session stays alive and listed. Manage terminals from session-radar without touching VS Code's own terminal tabs.
