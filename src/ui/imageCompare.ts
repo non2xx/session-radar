@@ -59,16 +59,19 @@ function html(webview: vscode.Webview, paths: string[]): string {
 
 /** 패널을 (다시) 만들어 보여준다. 웹뷰가 읽을 수 있는 폴더는 만들 때 고정이라 매번 새로 만든다. */
 function show(paths: string[]) {
-  current = paths;
   const roots = [...new Set(paths.map((p) => dirname(p)))].map((d) => vscode.Uri.file(d));
-  panel?.dispose();
+  panel?.dispose(); // 옛 패널을 먼저 닫고 나서 current 를 채운다(순서가 중요)
+  current = paths;
   panel = vscode.window.createWebviewPanel(
     "sessionRadar.images",
     `이미지 비교 (${paths.length})`,
     { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
     { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: roots },
   );
-  panel.onDidDispose(() => { panel = undefined; current = []; });
+  // "지금 지워지는 게 현재 패널일 때만" 비운다. 아래에서 옛 패널을 dispose 하면
+  // 그 정리 함수가 방금 채운 current 를 지워 버려서 "비교에 추가"가 앞 이미지를 잃었다.
+  const mine = panel;
+  panel.onDidDispose(() => { if (panel === mine) { panel = undefined; current = []; } });
   panel.webview.html = html(panel.webview, paths);
 }
 

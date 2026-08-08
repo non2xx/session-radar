@@ -39,7 +39,9 @@ export function registerImageLinks(context: vscode.ExtensionContext) {
       }
       return links;
     },
-    handleTerminalLink(link) {
+    // async 로 await 한다. 안 기다리면 다음 클릭이 들어올 때 새 칸이 아직 안 만들어져 있어
+    // 칸 수 계산이 옛 값이 되고, 방금 쓴 칸을 또 골라 한 칸에 탭으로 쌓인다(연속 클릭이 이 기능의 핵심 동선이다).
+    async handleTerminalLink(link) {
       const max = Math.max(1, Math.min(5, cfg().get<number>("imageColumns", 3)));
       const now = Date.now();
       // 한동안 안 눌렀으면 새 묶음으로 보고 처음부터 다시 채운다.
@@ -47,15 +49,20 @@ export function registerImageLinks(context: vscode.ExtensionContext) {
       lastClickAt = now;
 
       const counts = groups().map((g) => g.tabs.length);
+      const wasFull = batch.filter((c) => c <= counts.length).length >= max;
       const picked = pickColumn(counts, batch, max, cycle);
       batch = picked.used;
-      if (batch.length >= max) cycle++;
+      if (wasFull) cycle++; // 실제로 재사용한 클릭에서만 올린다(마지막 칸을 채운 클릭에서 올리면 한 칸씩 밀린다)
 
       // preserveFocus: 터미널에 초점을 남겨 다음 링크를 바로 이어서 누를 수 있게.
-      vscode.commands.executeCommand("vscode.open", vscode.Uri.file(link.file), {
-        viewColumn: picked.col,
-        preserveFocus: true,
-      });
+      try {
+        await vscode.commands.executeCommand("vscode.open", vscode.Uri.file(link.file), {
+          viewColumn: picked.col,
+          preserveFocus: true,
+        });
+      } catch (e) {
+        vscode.window.showWarningMessage(`이미지를 열지 못했어요: ${link.file}`);
+      }
     },
   };
 

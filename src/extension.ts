@@ -90,8 +90,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidCloseTerminal(() => refreshAll()),
   );
 
-  // Auto-reconnect: reopen previously-open sessions on activation (incl. across Tunnel↔SSH).
-  if (vscode.workspace.getConfiguration("sessionRadar").get<boolean>("autoReconnect", true)) {
+  // Auto-reconnect: reopen previously-open sessions (incl. across Tunnel↔SSH).
+  //
+  // ⚠ 뷰가 보인 창에서만 돈다. onStartupFinished 로 항상 활성화되므로, 조건 없이 돌리면
+  // 사이드바를 켜지도 않은 두 번째 창(또는 휴대폰 터널 접속)까지 같은 tmux 세션에 붙어
+  // 키 입력이 섞이고 화면 크기가 좁은 쪽에 맞춰진다.
+  const autoReconnect = () => {
+    if (!vscode.workspace.getConfiguration("sessionRadar").get<boolean>("autoReconnect", true)) return;
     const pending = new Set(loadOpen(OPEN_FILE).filter(isSafeSessionName));
     for (const t of vscode.window.terminals) pending.delete(t.name); // already open → skip
     // VS Code may restore its own terminals; drop those from pending to avoid duplicate attach (mirroring).
@@ -105,7 +110,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
       sub.dispose();
     }, 3500); // 느린 원격에서 VS Code 자체 터미널 복원을 기다릴 여유(중복 attach 방지)
-  }
+  };
 
   const watcher = vscode.workspace.createFileSystemWatcher(
     new vscode.RelativePattern(vscode.Uri.file(STATUS_DIR), "*.json")
@@ -115,7 +120,19 @@ export function activate(context: vscode.ExtensionContext) {
   watcher.onDidDelete(refreshAll);
   context.subscriptions.push(watcher);
 
-  const timer = setInterval(refreshAll, 3000); // poll tmux state (the spinner animation is CSS, so this only re-reads state)
-  context.subscriptions.push({ dispose: () => clearInterval(timer) });
+  // tmux 상태 폴링과 자동 재접속은 "이 창에서 뷰가 보였을 때" 시작한다.
+  // 시작 시 활성화(onStartupFinished)가 필요한 것은 터미널 링크 가로채기 하나뿐이라,
+  // 나머지는 뷰를 켜기 전까지 아무 일도 하지 않는다.
+  let timer: ReturnType<typeof setInterval> | undefined;
+  let started = false;
+  const startViewWork = () => {
+    if (started) return;
+    started = true;
+    autoReconnect();
+    timer = setInterval(refreshAll, 3000); // (the spinner animation is CSS, so this only re-reads state)
+  };
+  if (view.visible) startViewWork();
+  else context.subscriptions.push(view.onDidChangeVisibility((e) => { if (e.visible) startViewWork(); }));
+  context.subscriptions.push({ dispose: () => { if (timer) clearInterval(timer); } });
 }
 export function deactivate() {}

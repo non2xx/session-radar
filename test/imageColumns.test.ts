@@ -48,6 +48,30 @@ describe("pickColumn — 이미지를 어느 칸에 열까", () => {
     }
   });
 
+  // 실제 호출부(imageLinks.handleTerminalLink) 순서를 그대로 재현한다.
+  // 단위 시험만으로는 cycle 을 언제 올리는지가 빠져서, 재사용이 한 칸 밀리는 것을 못 잡았다.
+  it("★ 호출부 순서 재현: 3칸이 찬 뒤 재사용은 '가장 왼쪽 이미지 칸'부터", () => {
+    const max = 3;
+    let batch: number[] = [];
+    let cycle = 0;
+    let counts = [1]; // 코드 1칸이 열려 있는 상태
+    const click = () => {
+      const wasFull = batch.filter((c) => c <= counts.length).length >= max;
+      const p = pickColumn(counts, batch, max, cycle);
+      batch = p.used;
+      if (wasFull) cycle++;
+      if (p.col > counts.length) counts = [...counts, 1]; // 새 칸이 생김
+      return p.col;
+    };
+    expect(click()).toBe(2);
+    expect(click()).toBe(3);
+    expect(click()).toBe(4);
+    expect(click()).toBe(2); // 여기가 핵심 — 밀리면 3이 나온다
+    expect(click()).toBe(3);
+    expect(click()).toBe(4);
+    expect(click()).toBe(2);
+  });
+
   it("꽉 차면 왼쪽부터 돌아가며 재사용한다", () => {
     const used = [1, 2];
     expect(pickColumn([1, 1], used, 2, 0).col).toBe(1);

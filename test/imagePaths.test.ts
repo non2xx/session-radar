@@ -44,14 +44,14 @@ describe("resolveImagePath — 실제 파일로 바꾸기", () => {
   });
 
   it("역슬래시로 복사된 경로도 받는다", () => {
-    const t = "\\home\\mokgam\\projects\\.claude\\image_1786116924194.png";
-    expect(resolveImagePath(t, [], has("/home/mokgam/projects/.claude/image_1786116924194.png")))
-      .toBe("/home/mokgam/projects/.claude/image_1786116924194.png");
+    const t = "\\home\\user\\pics\\image_1786116924194.png";
+    expect(resolveImagePath(t, [], has("/home/user/pics/image_1786116924194.png")))
+      .toBe("/home/user/pics/image_1786116924194.png");
   });
 
   it("상대경로는 작업 폴더 기준으로 찾는다", () => {
-    expect(resolveImagePath("decks/out.png", ["/home/mokgam/projects/note"], has("/home/mokgam/projects/note/decks/out.png")))
-      .toBe("/home/mokgam/projects/note/decks/out.png");
+    expect(resolveImagePath("decks/out.png", ["/home/user/proj"], has("/home/user/proj/decks/out.png")))
+      .toBe("/home/user/proj/decks/out.png");
   });
 
   it("없는 파일이면 undefined — VS Code 기본 동작에 넘긴다", () => {
@@ -83,5 +83,19 @@ describe("extractImagePaths — 붙여넣은 글 전체에서", () => {
 
   it("찾은 게 없으면 빈 배열", () => {
     expect(extractImagePaths("아무 이미지도 없는 글", [], has())).toEqual([]);
+  });
+});
+
+describe("상한 — 느린 마운트에서 창이 멎지 않게", () => {
+  it("아주 긴 한 줄은 통째로 건너뛴다", () => {
+    const long = "/a/x.png ".repeat(1000); // 9000자
+    expect(long.length).toBeGreaterThan(4000);
+    expect(findImageSpans(long)).toEqual([]);
+  });
+
+  it("한 줄에서 검사하는 후보는 20개까지", () => {
+    const many = Array.from({ length: 50 }, (_, i) => `/a/${i}.png`).join(" ");
+    expect(many.length).toBeLessThan(4000);
+    expect(findImageSpans(many)).toHaveLength(20);
   });
 });

@@ -24,10 +24,15 @@ const isFile = (p: string): boolean => {
  * 공백이 없는 덩어리만 본다(터미널 링크는 어차피 공백 든 경로를 못 다룬다).
  * 앞뒤에 붙은 장식 문자(`@("'<` 등)는 떼고 start 를 그만큼 밀어 준다.
  */
+export const MAX_LINE = 4000;  // 아주 긴 한 줄(빌드 로그 등)에서 시간을 쓰지 않게
+export const MAX_SPANS = 20;   // 이미지가 잔뜩 든 폴더를 ls 한 줄에서 파일조회가 폭주하지 않게
+
 export function findImageSpans(line: string): ImageSpan[] {
+  if (line.length > MAX_LINE) return [];
   const re = new RegExp(`\\S+\\.(?:${EXT_ALT})\\b`, "gi");
   const out: ImageSpan[] = [];
   for (const m of line.matchAll(re)) {
+    if (out.length >= MAX_SPANS) break;
     let raw = m[0];
     let start = m.index ?? 0;
     const lead = raw.match(/^[@(\[<'"`›»\-]+/);
