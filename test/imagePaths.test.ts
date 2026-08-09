@@ -106,7 +106,8 @@ function probeOf(tree: Record<string, string[] | null>): FileProbe {
   return {
     isFile: (p) => p in tree && tree[p] === null,
     isDir: (p) => Array.isArray(tree[p]),
-    list: (d) => (tree[d] as string[] | undefined) ?? [],
+    // 진짜 probe 와 같은 계약: 접두사로 거르고 두 개까지만 (개수 판정이 잘림에 안 흔들리게)
+    list: (d, prefix) => ((tree[d] as string[] | undefined) ?? []).filter((n) => n.startsWith(prefix)).slice(0, 2),
   };
 }
 
@@ -152,9 +153,30 @@ describe("findTruncatedSpan — 줄바꿈으로 잘린 경로 되살리기", () 
     expect(findTruncatedSpan("/home/u/shots/very_long_folder_na 뒤에 글자가 더 있음", probe)).toBeUndefined();
   });
 
-  it("너무 짧은 조각·상대경로는 무시한다", () => {
+  it("너무 짧은 조각은 무시한다", () => {
     expect(findTruncatedSpan("/home/u/s", probe)).toBeUndefined();
-    expect(findTruncatedSpan("shots/very_long_folder_na", probe)).toBeUndefined();
+  });
+
+  it("★ 상대경로를 절대경로로 오해하지 않는다", () => {
+    // 루트가 진짜로 있는 트리. 예전 정규식은 낱말 안의 첫 슬래시부터 잡아서
+    // `artifacts/tmp/preview_ab` 를 `/tmp/preview_ab` 로 읽고 엉뚱한 파일을 열었다.
+    const withRoot = probeOf({
+      "/": ["tmp"],
+      "/tmp": ["preview_abcdef.png"],
+      "/tmp/preview_abcdef.png": null,
+    });
+    expect(findTruncatedSpan("/tmp/preview_ab", withRoot)?.file).toBe("/tmp/preview_abcdef.png");
+    expect(findTruncatedSpan("artifacts/tmp/preview_ab", withRoot)).toBeUndefined();
+  });
+
+  it("★ 폴더 이름 중간에 잘렸는데 그 폴더에 파일이 여럿이면 포기한다", () => {
+    const busy = probeOf({
+      "/home/u/shots": ["very_long_folder_name_here"],
+      "/home/u/shots/very_long_folder_name_here": ["a.png", "b.png"],
+      "/home/u/shots/very_long_folder_name_here/a.png": null,
+      "/home/u/shots/very_long_folder_name_here/b.png": null,
+    });
+    expect(findTruncatedSpan("/home/u/shots/very_long_folder_na", busy)).toBeUndefined();
   });
 
   it("없는 폴더면 조용히 포기한다", () => {

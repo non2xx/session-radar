@@ -13,6 +13,28 @@ let lastClickAt = 0;
 let batch: number[] = []; // 이번 묶음에서 쓴 칸 번호(왼쪽부터 순서대로)
 let cycle = 0;            // 칸이 꽉 찼을 때 어느 칸을 재사용할지
 
+/**
+ * 잘린 경로 조회 결과를 잠깐 기억해 둔다.
+ *
+ * provideTerminalLinks 는 **마우스가 줄 위를 스칠 때마다** 불리는데, 잘린 경로 조회는
+ * 폴더를 실제로 읽는다. 같은 줄을 몇 번이고 다시 읽으면 /mnt/c 같은 느린 폴더에서
+ * 화면이 끊긴다. 찾은 것도 못 찾은 것도(null) 같이 기억해야 헛수고가 안 줄어든다.
+ */
+const TRUNC_TTL_MS = 5_000;
+const TRUNC_MAX = 200;
+type Trunc = ReturnType<typeof findTruncatedSpan>;
+const truncCache = new Map<string, { at: number; v: Trunc }>();
+
+function truncatedCached(line: string): Trunc {
+  const hit = truncCache.get(line);
+  const now = Date.now();
+  if (hit && now - hit.at < TRUNC_TTL_MS) return hit.v;
+  const v = findTruncatedSpan(line);
+  if (truncCache.size >= TRUNC_MAX) truncCache.clear(); // 가장 단순한 비우기로 충분한 크기
+  truncCache.set(line, { at: now, v });
+  return v;
+}
+
 /** 지금 열려 있는 편집기 칸들. tabGroups 를 못 쓰는 옛 버전은 1칸으로 친다. */
 function groups(): readonly { tabs: readonly unknown[] }[] {
   try { return vscode.window.tabGroups.all as any; } catch { return [{ tabs: [] }]; }
@@ -66,7 +88,7 @@ export function registerImageLinks(context: vscode.ExtensionContext) {
       const end = ctx.line.replace(/\s+$/, "").length;
       const covered = links.some((l) => l.startIndex + l.length >= end);
       if (!covered) {
-        const t = findTruncatedSpan(ctx.line);
+        const t = truncatedCached(ctx.line);
         if (t) {
           links.push({
             startIndex: t.start,

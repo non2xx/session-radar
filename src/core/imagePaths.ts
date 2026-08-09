@@ -1,9 +1,10 @@
-import { existsSync, statSync, readdirSync } from "node:fs";
+import { existsSync, statSync, opendirSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { homedir } from "node:os";
 
 export const IMAGE_EXT = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "avif"];
 const EXT_ALT = IMAGE_EXT.join("|");
+const IMAGE_EXT_RE = new RegExp(`\\.(?:${EXT_ALT})$`, "i");
 
 /** 줄 안에서 이미지 경로처럼 보이는 구간. startIndex 는 터미널 링크를 그릴 때 그대로 쓴다. */
 export interface ImageSpan {
@@ -42,22 +43,49 @@ export function findImageSpans(line: string): ImageSpan[] {
   return out;
 }
 
-/** 파일 조회를 시험에서 갈아 끼우기 위한 최소 창구. */
+/**
+ * 파일 조회를 시험에서 갈아 끼우기 위한 최소 창구.
+ *
+ * `list` 는 **접두사를 받아서** 맞는 것만 돌려준다. 목록을 다 받아 온 뒤 자르면
+ * "후보가 딱 하나"라는 이 기능의 안전장치가 깨진다 — 진짜 후보가 둘인데 잘린 쪽에
+ * 하나가 들어가면 하나로 보여서 엉뚱한 파일을 확정해 버린다.
+ * 답은 "하나인가 둘 이상인가"만 알면 되므로 **두 개까지만** 돌려주면 된다.
+ */
 export interface FileProbe {
   isFile(p: string): boolean;
   isDir(p: string): boolean;
-  list(dir: string): string[];
+  list(dir: string, prefix: string): string[];
 }
 
 const realProbe: FileProbe = {
   isFile,
   isDir: (p) => { try { return statSync(p).isDirectory(); } catch { return false; } },
-  list: (d) => { try { return readdirSync(d).slice(0, MAX_DIR_ENTRIES); } catch { return []; } },
+  // 폴더를 훑다가 두 번째로 맞는 게 나오면 바로 멈춘다(마우스가 스칠 때마다 도는 자리라
+  // 통째로 읽으면 /mnt/c 같은 느린 폴더에서 화면이 잠깐 멈춘다).
+  list: (d, prefix) => {
+    const out: string[] = [];
+    let handle;
+    try { handle = opendirSync(d); } catch { return out; }
+    try {
+      let scanned = 0;
+      for (let e = handle.readSync(); e !== null; e = handle.readSync()) {
+        if (++scanned > MAX_DIR_SCAN) return []; // 너무 큰 폴더는 통째로 포기(안전한 실패)
+        if (!e.name.startsWith(prefix)) continue;
+        out.push(e.name);
+        if (out.length > 1) break;
+      }
+    } catch {
+      return [];
+    } finally {
+      try { handle.closeSync(); } catch { /* 이미 닫혔으면 그만 */ }
+    }
+    return out;
+  },
 };
 
 export const MIN_TRUNCATED = 12;   // 이보다 짧은 조각은 우연히 걸리기 쉬워 손대지 않는다
 export const MAX_DESCEND = 4;      // 폴더를 따라 내려가는 깊이 한도
-export const MAX_DIR_ENTRIES = 500;
+export const MAX_DIR_SCAN = 5000;  // 이 개수를 넘게 훑어야 하는 폴더는 손대지 않는다
 
 /**
  * 줄 끝에서 **잘린** 경로 조각을 원래 파일로 되살린다.
@@ -74,26 +102,27 @@ export function findTruncatedSpan(
 ): (ImageSpan & { file: string }) | undefined {
   if (line.length > MAX_LINE) return undefined;
   const trimmed = line.replace(/\s+$/, "");
-  const m = trimmed.match(/(?:~\/|\/)\S*$/); // 줄 맨 끝까지 이어지는 경로 모양 조각만
-  if (!m || m[0].length < MIN_TRUNCATED) return undefined;
+  // 마지막 낱말 **전체**가 / 나 ~/ 로 시작해야 한다. 줄 안의 첫 슬래시부터 잡으면
+  // 상대경로 `foo/tmp/shot_ab` 가 `/tmp/shot_ab` 로 둔갑해 엉뚱한 폴더를 뒤진다.
+  const raw = trimmed.split(/\s/).pop() ?? "";
+  if (!/^(?:~\/|\/)/.test(raw) || raw.length < MIN_TRUNCATED) return undefined;
+  const start = trimmed.length - raw.length;
 
-  const raw = m[0];
-  let p = raw.startsWith("~/") ? join(homedir(), raw.slice(2)) : raw;
-  if (!isAbsolute(p)) return undefined;
+  const p = raw.startsWith("~/") ? join(homedir(), raw.slice(2)) : raw;
   // 확장자까지 멀쩡히 있는 경로는 잘린 게 아니다 — 평소 경로로 처리되거나, 없는 파일이거나.
-  if (new RegExp(`\\.(?:${EXT_ALT})$`, "i").test(p) || probe.isFile(p)) return undefined;
+  if (IMAGE_EXT_RE.test(p) || probe.isFile(p)) return undefined;
 
   const cut = p.lastIndexOf("/");
   let dir = p.slice(0, cut) || "/";
   let head = p.slice(cut + 1);
   for (let depth = 0; depth < MAX_DESCEND; depth++) {
     if (!probe.isDir(dir)) return undefined;
-    const hits = probe.list(dir).filter((n) => n.startsWith(head));
+    const hits = probe.list(dir, head);
     if (hits.length !== 1) return undefined; // 후보가 없거나 여럿이면 포기
     const cand = join(dir, hits[0]);
     if (probe.isFile(cand)) {
-      if (!new RegExp(`\\.(?:${EXT_ALT})$`, "i").test(cand)) return undefined;
-      return { start: m.index ?? 0, raw, file: cand };
+      if (!IMAGE_EXT_RE.test(cand)) return undefined;
+      return { start, raw, file: cand };
     }
     if (!probe.isDir(cand)) return undefined;
     dir = cand;
@@ -115,7 +144,7 @@ export function resolveImagePath(
   let p = raw.trim().replace(/^[@(\[<'"`]+/, "").replace(/[)\]>,.;:'"`]+$/, "");
   if (!p) return undefined;
   if (p.includes("\\") && !p.includes("/")) p = p.replace(/\\/g, "/");
-  if (!new RegExp(`\\.(?:${EXT_ALT})$`, "i").test(p)) return undefined;
+  if (!IMAGE_EXT_RE.test(p)) return undefined;
   if (p.startsWith("~/")) p = join(homedir(), p.slice(2));
 
   const candidates = isAbsolute(p) ? [p] : roots.map((r) => join(r, p));
