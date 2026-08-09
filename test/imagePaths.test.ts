@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { findImageSpans, resolveImagePath, extractImagePaths } from "../src/core/imagePaths";
+import { findImageSpans, findTruncatedSpan, resolveImagePath, extractImagePaths } from "../src/core/imagePaths";
+import type { FileProbe } from "../src/core/imagePaths";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -97,5 +98,66 @@ describe("상한 — 느린 마운트에서 창이 멎지 않게", () => {
     const many = Array.from({ length: 50 }, (_, i) => `/a/${i}.png`).join(" ");
     expect(many.length).toBeLessThan(4000);
     expect(findImageSpans(many)).toHaveLength(20);
+  });
+});
+
+// 가짜 파일 시스템. 키는 전체 경로, 값이 배열이면 폴더·null 이면 파일.
+function probeOf(tree: Record<string, string[] | null>): FileProbe {
+  return {
+    isFile: (p) => p in tree && tree[p] === null,
+    isDir: (p) => Array.isArray(tree[p]),
+    list: (d) => (tree[d] as string[] | undefined) ?? [],
+  };
+}
+
+describe("findTruncatedSpan — 줄바꿈으로 잘린 경로 되살리기", () => {
+  const tree: Record<string, string[] | null> = {
+    "/home/u/shots": ["very_long_folder_name_here"],
+    "/home/u/shots/very_long_folder_name_here": ["wrapped_image_three.png"],
+    "/home/u/shots/very_long_folder_name_here/wrapped_image_three.png": null,
+  };
+  const probe = probeOf(tree);
+
+  it("★ 파일 이름 도중에 잘려도 딱 하나면 찾아낸다", () => {
+    const line = "  /home/u/shots/very_long_folder_name_here/wrapped_ima";
+    const r = findTruncatedSpan(line, probe);
+    expect(r?.file).toBe("/home/u/shots/very_long_folder_name_here/wrapped_image_three.png");
+    expect(line.slice(r!.start, r!.start + r!.raw.length)).toBe(r!.raw);
+  });
+
+  it("★ 폴더 이름 도중에 잘려도 한 칸씩 내려가 찾아낸다", () => {
+    const r = findTruncatedSpan("/home/u/shots/very_long_folder_na", probe);
+    expect(r?.file).toBe("/home/u/shots/very_long_folder_name_here/wrapped_image_three.png");
+  });
+
+  it("후보가 여럿이면 손대지 않는다 (엉뚱한 파일을 여느니 안 여는 게 낫다)", () => {
+    const many = probeOf({
+      "/home/u/shots": ["a1.png", "a2.png"],
+      "/home/u/shots/a1.png": null,
+      "/home/u/shots/a2.png": null,
+    });
+    expect(findTruncatedSpan("/home/u/shots/a", many)).toBeUndefined();
+  });
+
+  it("찾아낸 게 이미지가 아니면 안 연다", () => {
+    const txt = probeOf({ "/home/u/shots": ["notes_long_name.txt"], "/home/u/shots/notes_long_name.txt": null });
+    expect(findTruncatedSpan("/home/u/shots/notes_long", txt)).toBeUndefined();
+  });
+
+  it("확장자까지 멀쩡한 경로는 여기서 처리하지 않는다 (평소 경로 처리에 맡김)", () => {
+    expect(findTruncatedSpan("/home/u/shots/very_long_folder_name_here/wrapped_image_three.png", probe)).toBeUndefined();
+  });
+
+  it("줄 끝이 아니면 잘린 게 아니다", () => {
+    expect(findTruncatedSpan("/home/u/shots/very_long_folder_na 뒤에 글자가 더 있음", probe)).toBeUndefined();
+  });
+
+  it("너무 짧은 조각·상대경로는 무시한다", () => {
+    expect(findTruncatedSpan("/home/u/s", probe)).toBeUndefined();
+    expect(findTruncatedSpan("shots/very_long_folder_na", probe)).toBeUndefined();
+  });
+
+  it("없는 폴더면 조용히 포기한다", () => {
+    expect(findTruncatedSpan("/nope/nothing_here_at_all", probe)).toBeUndefined();
   });
 });

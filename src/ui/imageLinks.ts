@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { findImageSpans, resolveImagePath } from "../core/imagePaths";
+import { findImageSpans, findTruncatedSpan, resolveImagePath } from "../core/imagePaths";
 import { pickColumn } from "../core/imageColumns";
 
 interface ImageLink extends vscode.TerminalLink {
@@ -60,6 +60,21 @@ export function registerImageLinks(context: vscode.ExtensionContext) {
           tooltip: "옆 칸에 열기 (나란히 비교)",
           file,
         });
+      }
+      // 터미널이 좁아 경로가 두 줄로 접힌 경우. 접힌 앞조각은 확장자가 없어 위에서 안 잡힌다.
+      // 줄 끝을 이미 링크로 덮었으면 건드리지 않는다.
+      const end = ctx.line.replace(/\s+$/, "").length;
+      const covered = links.some((l) => l.startIndex + l.length >= end);
+      if (!covered) {
+        const t = findTruncatedSpan(ctx.line);
+        if (t) {
+          links.push({
+            startIndex: t.start,
+            length: t.raw.length,
+            tooltip: `옆 칸에 열기 (줄바꿈으로 잘린 경로): ${t.file}`,
+            file: t.file,
+          });
+        }
       }
       return links;
     },
