@@ -20,6 +20,8 @@ export type Item =
 function statusIcon(state: SessionState): vscode.ThemeIcon {
   switch (state) {
     case "working": return new vscode.ThemeIcon("loading~spin", new vscode.ThemeColor("charts.green"));
+    // 파란 톱니 = 뒤에서 에이전트만 돈다(말 걸어도 된다). 초록 스피너와 색·모양 둘 다 다르게 둔다.
+    case "agents":  return new vscode.ThemeIcon("gear~spin", new vscode.ThemeColor("charts.blue"));
     case "turn":    return new vscode.ThemeIcon("circle-filled", new vscode.ThemeColor("charts.yellow"));
     default:        return new vscode.ThemeIcon("circle-outline", new vscode.ThemeColor("disabledForeground")); // inactive/unknown
   }
@@ -79,13 +81,17 @@ export class SessionRadarProvider
     const isOpen = vscode.window.terminals.some((term) => term.name === e.node.name);
     const parts: string[] = [];
     if (isOpen) parts.push("●"); // 터미널이 열려 있음(존재 기준)
-    if (e.node.ts && e.node.state !== "inactive") { // 카드 뷰와 동일: 비활성엔 경과시간 숨김
+    if (e.node.state === "agents" && e.node.agents?.length) {
+      // 경과시간 자리를 대신 쓴다. 지금 알고 싶은 건 "몇 분 됐나"가 아니라 "뭐가 도나"라서.
+      parts.push(`에이전트 ${e.node.agents.length}`);
+    } else if (e.node.ts && e.node.state !== "inactive") { // 카드 뷰와 동일: 비활성엔 경과시간 숨김
       const mins = Math.max(0, Math.round((Date.now() / 1000 - e.node.ts) / 60));
       parts.push(`${mins}m`);
     }
     if (parts.length) t.description = parts.join(" ");
     const tip: string[] = [];
     if (e.node.label !== e.node.name) tip.push(e.node.name);
+    if (e.node.agents?.length) tip.push(`도는 중: ${e.node.agents.join(", ")}`);
     if (e.node.path) tip.push(`📁 ${e.node.path}`);
     if (tip.length) t.tooltip = tip.join("\n");
     t.command = { command: "sessionRadar.jump", title: "Jump", arguments: [e.node.name] };

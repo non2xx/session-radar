@@ -8,6 +8,7 @@ function node(name: string, layout: Layout, statuses: Map<string, StatusEntry>):
     state: st ? st.state : "unknown",
     ts: st ? st.ts : null,
     path: layout.paths[name],
+    agents: st?.agents,
   };
 }
 

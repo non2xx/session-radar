@@ -26,7 +26,8 @@ If you keep a bunch of Claude Code sessions running (one per project, in tmux), 
 
 - **Two views, your choice** — a native **tree** view and a compact **card** view, side by side (collapse whichever you don't use).
 - **Live status** per session, read from the tmux pane title Claude itself sets:
-  - **spinning ring (green)** — *working*: Claude is processing (its tmux title shows the animated braille spinner)
+  - **spinning ring (green)** — *working*: Claude itself is answering. Typing now only queues.
+  - **dashed ring (blue)** — *agents*: **you can talk.** The main conversation is free; only subagents it dispatched are still running. The card shows how many, and the tooltip names them. The pane title cannot tell this apart — Claude spins the same braille spinner for a subagent — so this one state is read from the pane's screen instead (see below).
   - **filled dot (yellow)** — *turn*: your turn. Claude is running with the spinner stopped, so it either answered or is asking you something
   - **hollow dot (grey)** — *inactive*: Claude isn't running there (a plain shell)
   - **hollow dot (grey)** — *unknown*: no tmux session by that name right now. Usually it ended (or the machine rebooted) and the name is still on your list, so "목록에서 삭제" clears it. It also covers tmux being unreadable (not installed / no server / timed out).
@@ -46,7 +47,11 @@ If you keep a bunch of Claude Code sessions running (one per project, in tmux), 
 
 ## How it works
 
-Every few seconds the extension runs `tmux list-panes` across all sessions and reads each pane's **foreground command and title**. Claude Code puts an animated braille spinner in its title while it is working and a `✳` when it is your turn, so the title alone tells the state: no hook, no daemon, nothing writing files. A session with several panes takes its strongest state (working > turn > inactive). Your layout (groups, order, aliases, hidden) lives in `~/.claude/session-radar/layout.json` (atomic writes with a backup).
+Every few seconds the extension runs `tmux list-panes` across all sessions and reads each pane's **foreground command and title**. Claude Code puts an animated braille spinner in its title while it is working and a `✳` when it is your turn, so the title alone tells the state: no hook, no daemon, nothing writing files. A session with several panes takes its strongest state (working > agents > turn > inactive).
+
+The title alone cannot say **who** is working: Claude spins the same braille spinner while a subagent runs, so a session waiting for your next message reads as busy. Only sessions the title already calls *working* then get one `tmux capture-pane`, and the bottom of that screen settles it — a thinking line above the input box means the main conversation is answering, while an agent tray (`● main` plus one row per subagent) with no thinking line means it is free. Everything else is answered by the title, so no extra process is spawned for it; the reads are capped at 250ms per round and cached for a second. If a screen can't be read in time the session simply stays *working*, which is what it reported before.
+
+Your layout (groups, order, aliases, hidden) lives in `~/.claude/session-radar/layout.json` (atomic writes with a backup).
 
 The identity key throughout is the **tmux session name** (= the terminal name), so status, grouping, and "jump" all line up.
 

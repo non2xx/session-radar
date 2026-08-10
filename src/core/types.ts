@@ -1,5 +1,6 @@
-export type SessionState = "working" | "turn" | "inactive" | "unknown";
-export interface StatusEntry { state: SessionState; ts: number; }
+// "agents": main is free (you can type) but subagents it dispatched are still running.
+export type SessionState = "working" | "agents" | "turn" | "inactive" | "unknown";
+export interface StatusEntry { state: SessionState; ts: number; agents?: string[]; }
 
 export interface Group { id: string; name: string; sessions: string[]; }
 export interface Layout {
@@ -15,6 +16,7 @@ export interface SessionNode {
   state: SessionState;
   ts: number | null;
   path?: string;         // configured project path (for -c on open / tooltip)
+  agents?: string[];     // running subagents, when state is "agents"
 }
 export interface GroupNode { id: string; name: string; sessions: SessionNode[]; }
 export interface TreeData { groups: GroupNode[]; ungrouped: SessionNode[]; }

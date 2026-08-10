@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { SessionState, StatusEntry } from "./types";
+import { refineWithScreen } from "./paneScreen";
 
 const SAFE = /^[A-Za-z0-9._-]+$/;
 
@@ -45,6 +46,7 @@ export function listSessions(ttlMs = 3000): string[] {
 // (used right after creating a session so the panel shows it without waiting for TTL).
 export function invalidateSessionCache(): void {
   _cache = null;
+  _states = null;
 }
 
 // ---- Live pane state, read straight from tmux (ground truth) ----
@@ -67,7 +69,8 @@ function isSpinnerGlyph(ch: string): boolean {
   const c = ch.codePointAt(0);
   return c !== undefined && c >= 0x2800 && c <= 0x28ff;
 }
-const rank = (s: SessionState): number => (s === "working" ? 3 : s === "turn" ? 2 : 1);
+const rank = (s: SessionState): number =>
+  s === "working" ? 4 : s === "agents" ? 3 : s === "turn" ? 2 : 1;
 
 // Parse `#{session_name}\t#{pane_current_command}\t#{pane_title}\t#{window_activity}` lines.
 // A session with multiple panes takes its strongest state (working > turn > inactive).
@@ -95,17 +98,38 @@ export function parsePaneStates(raw: string): Map<string, StatusEntry> {
   return out;
 }
 
+// Reading the screen costs one tmux process per candidate session, and the extension host
+// is single-threaded, so two limits keep the panel cheap:
+//  - CAPTURE_BUDGET_MS: stop capturing once this much wall time is gone this round.
+//    Sessions past the budget keep their title-only "working" (measured: ~12ms per pane,
+//    ~195ms for all 16 sessions here, so the budget is normally never reached).
+//  - STATE_TTL_MS: getTreeData() runs several times per refresh — once for the tree root,
+//    once per group, once for the card view — and the poll fires every 3s. Without this
+//    each refresh would re-shell every session. One read per second is plenty.
+const CAPTURE_BUDGET_MS = 250;
+const CAPTURE_TIMEOUT_MS = 300;
+const STATE_TTL_MS = 1000;
+let _states: { ts: number; map: Map<string, StatusEntry> } | null = null;
+
 export function readPaneStates(): Map<string, StatusEntry> {
+  const now = Date.now();
+  if (_states && now - _states.ts < STATE_TTL_MS) return _states.map;
+  let map: Map<string, StatusEntry>;
   try {
     const out = execFileSync(
       "tmux",
       ["list-panes", "-a", "-F", "#{session_name}\t#{pane_current_command}\t#{pane_title}\t#{window_activity}"],
       { encoding: "utf8", timeout: 1000 },
     );
-    return parsePaneStates(out);
+    const started = Date.now();
+    map = refineWithScreen(parsePaneStates(out), (s) =>
+      Date.now() - started > CAPTURE_BUDGET_MS ? [] : capturePane(s, 0, CAPTURE_TIMEOUT_MS),
+    );
   } catch {
-    return new Map(); // no tmux server / tmux not installed / timed out
+    map = new Map(); // no tmux server / tmux not installed / timed out
   }
+  _states = { ts: now, map };
+  return map;
 }
 
 /**
@@ -114,14 +138,16 @@ export function readPaneStates(): Map<string, StatusEntry> {
  * 확장은 VS Code 에서 터미널을 **한 줄씩만** 받는다. 창이 좁아 경로가 두 줄로 접히면
  * 어느 쪽도 완전한 경로가 아니라 링크가 죽는다. 원본은 tmux 가 갖고 있으니, 추측해서
  * 되살리는 대신 직접 읽어서 두 줄을 붙인다.
+ *
+ * back=0 이면 지금 보이는 화면만 가져온다(스크롤백 없음) — 상태 판정이 쓰는 방식.
  */
-export function capturePane(session: string, back = 200): string[] {
+export function capturePane(session: string, back = 200, timeoutMs = 800): string[] {
   if (!isSafeSessionName(session)) return [];
   try {
     const out = execFileSync(
       "tmux",
       ["capture-pane", "-p", "-t", session, "-S", `-${Math.max(0, Math.floor(back))}`],
-      { encoding: "utf8", timeout: 800, maxBuffer: 2 << 20 },
+      { encoding: "utf8", timeout: timeoutMs, maxBuffer: 2 << 20 },
     );
     return out.split("\n");
   } catch {
