@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import { existsSync, statSync } from "node:fs";
-import { SessionRadarProvider, LAYOUT_FILE, OPEN_FILE } from "./ui/treeProvider";
+import { SessionRadarProvider, LAYOUT_FILE, OPEN_FILE, subagentsEnabled } from "./ui/treeProvider";
+import { invalidateAgentsIndex, refreshClaudeSessions } from "./core/agentsSource";
 import { registerCommands } from "./ui/commands";
 import { registerImageCompare } from "./ui/imageCompare";
 import { registerImageLinks } from "./ui/imageLinks";
@@ -51,6 +52,8 @@ export function activate(context: vscode.ExtensionContext) {
   const refreshAll = () => { provider.refresh(); card.refresh(); };
   // 두 뷰가 같은 시작 조건을 쓴다. 실제 구현은 아래에서 채운다(뷰보다 뒤에 만들어져서).
   let startViewWork: () => void = () => {};
+  // 새로고침 버튼이 에이전트 목록도 함께 당기게 한다(같은 이유로 아래에서 채운다).
+  let pullAgentsNow: () => void = () => {};
   card = new CardViewProvider(refreshAll, () => startViewWork());
   provider.onChanged = refreshAll; // tree drag refreshes both views
 
@@ -60,12 +63,17 @@ export function activate(context: vscode.ExtensionContext) {
     showCollapseAll: true,
   });
   context.subscriptions.push(view);
+  // 사용자가 접거나 편 것을 기억해 둔다 — 3초마다 다시 그려도 그 선택이 유지되게.
+  context.subscriptions.push(
+    view.onDidCollapseElement((e) => provider.noteExpansion(e.element, false)),
+    view.onDidExpandElement((e) => provider.noteExpansion(e.element, true)),
+  );
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("sessionRadar.cards", card)
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("sessionRadar.refresh", () => refreshAll()),
+    vscode.commands.registerCommand("sessionRadar.refresh", () => { pullAgentsNow(); refreshAll(); }),
     vscode.commands.registerCommand("sessionRadar.jump", (name: string) => {
       openSession(name, { split: false });
     }),
@@ -115,17 +123,40 @@ export function activate(context: vscode.ExtensionContext) {
   // tmux 상태 폴링과 자동 재접속은 "이 창에서 뷰가 보였을 때" 시작한다.
   // 시작 시 활성화(onStartupFinished)가 필요한 것은 터미널 링크 가로채기 하나뿐이라,
   // 나머지는 뷰를 켜기 전까지 아무 일도 하지 않는다.
+  // `claude agents --json` 은 실측 0.6초라 3초 주기에 못 태운다(확장 호스트가 한 줄로 돈다).
+  // 느린 주기로 따로 돌려 캐시만 갈아 끼우고, 화면은 언제나 그 캐시를 읽는다.
+  const cfg = () => vscode.workspace.getConfiguration("sessionRadar");
+  const pullAgents = () => {
+    if (!subagentsEnabled()) return;
+    refreshClaudeSessions(cfg().get<string>("claudeCommand", "claude"), () => {
+      invalidateAgentsIndex();
+      refreshAll();
+    });
+  };
+  pullAgentsNow = pullAgents;
+
   let timer: ReturnType<typeof setInterval> | undefined;
+  let agentsTimer: ReturnType<typeof setInterval> | undefined;
   let started = false;
   startViewWork = () => {
     if (started) return;
     started = true;
     autoReconnect();
     timer = setInterval(refreshAll, 3000); // (the spinner animation is CSS, so this only re-reads state)
+    pullAgents();
+    // 설정에 숫자가 아닌 게 들어오면 NaN → setInterval 이 1ms 로 읽어 CLI 를 쉼 없이 부른다.
+    const raw = cfg().get<number>("agentsRefreshSeconds", 20);
+    const every = Number.isFinite(raw) ? Math.max(5, Math.min(300, raw)) : 20;
+    agentsTimer = setInterval(pullAgents, every * 1000);
   };
   // 트리 뷰와 카드 뷰 중 **어느 쪽이든** 보이면 시작한다. 카드 쪽 신호는 CardViewProvider 가 보낸다.
   if (view.visible) startViewWork();
   context.subscriptions.push(view.onDidChangeVisibility((e) => { if (e.visible) startViewWork(); }));
-  context.subscriptions.push({ dispose: () => { if (timer) clearInterval(timer); } });
+  context.subscriptions.push({
+    dispose: () => {
+      if (timer) clearInterval(timer);
+      if (agentsTimer) clearInterval(agentsTimer);
+    },
+  });
 }
 export function deactivate() {}

@@ -2,7 +2,7 @@
   "name": "session-radar",
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "license": "MIT",
   "icon": "assets/icon.png",
   "keywords": ["claude", "claude code", "tmux", "sessions", "status", "remote"],
@@ -81,6 +81,23 @@
           "type": "boolean",
           "default": true,
           "description": "터미널에서 이미지 경로를 Ctrl+클릭하면 새 탭 대신 오른쪽 격자에 나란히 엽니다. 끄면 VS Code 기본 동작(새 탭)으로 돌아갑니다."
+        },
+        "sessionRadar.showSubagents": {
+          "type": "boolean",
+          "default": true,
+          "description": "세션 아래에 그 세션이 돌리는 서브에이전트를 펼쳐 보여줍니다. 끄면 목록 조회도 하지 않습니다."
+        },
+        "sessionRadar.agentsRefreshSeconds": {
+          "type": "number",
+          "default": 20,
+          "minimum": 5,
+          "maximum": 300,
+          "description": "서브에이전트 목록을 몇 초마다 다시 읽을지. 세션 상태(3초)와 따로 돕니다 — 이 조회가 느려서 화면이 끊기지 않게 하려는 것입니다."
+        },
+        "sessionRadar.claudeCommand": {
+          "type": "string",
+          "default": "claude",
+          "description": "claude 실행 파일. 서브에이전트 목록이 비어 있으면 `which claude` 결과를 전체 경로로 적어 주세요 (VS Code 가 nvm 경로를 못 볼 때가 있습니다)."
         },
         "sessionRadar.imageMaxOpen": {
           "type": "number",

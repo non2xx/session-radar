@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { getTreeData, moveSessionsTo } from "./treeProvider";
+import { decorate } from "../core/cardModel";
 
 function getNonce(): string {
   let t = ""; const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -51,7 +52,7 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   refresh(): void {
     if (!this.view || !this.view.visible) return;
     const open = vscode.window.terminals.map((t) => t.name);
-    this.view.webview.postMessage({ type: "render", data: getTreeData(), open });
+    this.view.webview.postMessage({ type: "render", data: decorate(getTreeData(), Date.now()), open });
   }
 
   private html(): string {
@@ -89,6 +90,18 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
   .nm{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .ago{color:var(--vscode-descriptionForeground);font-size:10.5px}
   .empty{padding:12px;color:var(--vscode-descriptionForeground)}
+  /* 서브에이전트 한 줄: 카드 밑에 붙는 작은 줄 */
+  .sub{display:flex;align-items:center;gap:6px;margin:0 6px 0 6px;padding:2px 10px;
+       color:var(--vscode-descriptionForeground);font-size:10.5px}
+  .sub .sdot{width:6px;height:6px;flex:0 0 auto;border-radius:50%;
+       background:var(--vscode-charts-blue,#4c9df3);animation:sr-pulse 1.6s ease-in-out infinite}
+  .sub .stx{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--vscode-foreground);opacity:.85}
+  .sub .sty{flex:0 0 auto;opacity:.75}
+  @keyframes sr-pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){.sub .sdot{animation:none}}
+  .blk{margin:2px 6px;padding:6px 10px;border:1px solid var(--vscode-panel-border);
+       background:var(--vscode-sideBar-background);display:flex;align-items:center;gap:8px}
+  .blk .bdot{width:8px;height:8px;flex:0 0 auto;border-radius:50%;background:var(--vscode-charts-red,#f85149)}
   #menu{position:fixed;display:none;z-index:9;background:var(--vscode-menu-background,#252526);
         color:var(--vscode-menu-foreground,#ccc);border:1px solid var(--vscode-menu-border,#454545);
         box-shadow:0 2px 8px rgba(0,0,0,.4);min-width:150px;border-radius:0;padding:3px 0}
@@ -122,9 +135,10 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
         const om=openSet.has(s.name)?'● ':'';
         const na=(s.agents&&s.agents.length)||0;
         // 에이전트가 돌면 경과시간 대신 개수를 보인다(트리 뷰와 같은 규칙).
-        const meta=(st==='agents'&&na)?('에이전트 '+na):(st!=='inactive'&&s.ts?ago(s.ts):'');
+        // 파일에서 센 것(s.running)이 화면에서 읽은 것보다 정확해서 먼저다.
+        const meta=s.running?('●'+s.running):(st==='agents'&&na)?('에이전트 '+na):(st!=='inactive'&&s.ts?ago(s.ts):'');
         card.innerHTML=ind(st)+'<span class="nm">'+esc(s.label)+'</span><span class="ago">'+om+meta+'</span>';
-        const tip=[];if(s.label!==s.name)tip.push(s.name);if(na)tip.push('도는 중: '+s.agents.join(', '));if(s.path)tip.push('📁 '+s.path);if(tip.length)card.title=tip.join('\\n');
+        const tip=[];if(s.label!==s.name)tip.push(s.name);if(s.running)tip.push('도는 서브에이전트 '+s.running+'개');else if(na)tip.push('도는 중: '+s.agents.join(', '));if(s.path)tip.push('📁 '+s.path);if(tip.length)card.title=tip.join('\\n');
         card.addEventListener('click',()=>{sel=idx;selName=s.name;updateSel();post({type:'jump',name:s.name});});
         card.addEventListener('contextmenu',e=>{e.preventDefault();sessionMenu(e,s.name,s.label);});
         card.addEventListener('dragstart',e=>{drag=s.name;if(e.dataTransfer){e.dataTransfer.setData('text/plain',s.name);e.dataTransfer.effectAllowed='move';}});
@@ -133,9 +147,29 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
         card.addEventListener('dragleave',()=>card.classList.remove('dragover'));
         card.addEventListener('drop',e=>{e.preventDefault();card.classList.remove('dragover');if(drag&&drag!==s.name)post({type:'move',name:drag,targetGroupId:g.id,beforeName:s.name});drag=null;});
         root.appendChild(card);
+        // 도는 서브에이전트를 카드 밑에 작은 줄로. 글자는 확장 쪽에서 이미 잘라 보낸다.
+        for(const r of (s.rows||[])){
+          const sub=document.createElement('div');sub.className='sub';
+          sub.style.paddingLeft=(10+r.level*10)+'px';
+          sub.innerHTML='<span class="sdot"></span><span class="stx">'+esc(r.label)+'</span><span class="sty">'+esc(r.meta)+'</span>';
+          sub.title=r.tip;
+          root.appendChild(sub);
+        }
       }
     }
-    if(!flat.length) root.innerHTML='<div class="empty">세션이 없어요. (＋ 버튼으로 추가하거나 tmux 세션을 켜세요)</div>';
+    // 몇 주씩 막혀 있던 세션 — tmux 창이 없어 여태 어디에도 안 보이던 것들.
+    if(data.blocked&&data.blocked.length){
+      const bh=document.createElement('div');bh.className='gh';bh.textContent='막힌 세션 '+data.blocked.length;
+      root.appendChild(bh);
+      for(const b of data.blocked){
+        const d=document.createElement('div');d.className='blk';
+        d.innerHTML='<span class="bdot"></span><span class="nm">'+esc(b.name)+'</span><span class="ago">'+esc(b.age)+' 방치</span>';
+        d.title=b.tip;
+        root.appendChild(d);
+      }
+    }
+    // 막힌 세션만 있고 tmux 세션이 하나도 없을 수 있다 — 그때 이 안내로 덮으면 안 된다.
+    if(!flat.length&&!(data.blocked&&data.blocked.length)) root.innerHTML='<div class="empty">세션이 없어요. (＋ 버튼으로 추가하거나 tmux 세션을 켜세요)</div>';
     if(selName){const i=flat.indexOf(selName);if(i>=0)sel=i;}
     if(sel>=flat.length)sel=Math.max(0,flat.length-1);
     selName=flat[sel]||null;updateSel();
