@@ -17,13 +17,25 @@ import { SessionState, StatusEntry } from "./types";
 //     The gerund is random and not always ASCII ("Flambéing"), and the glyph cycles
 //     (· ✻ ✶ ✽ * …), so neither can be matched literally. The shape can.
 //
-//  2) the agent tray, pinned to the last lines of the screen while subagents run:
+//  2) the agent tray, near the last lines of the screen while subagents run:
 //         ● main
 //         ◯ general-purpose         Reading foo.ts
 //         ◯ chageun:plan-validator  Checking the plan
 //     "● main" never carries the main conversation's own activity — it stays bare even
 //     while main is thinking — so the tray answers "which agents", never "is main busy".
 //     Marker 1 is the only thing that answers that.
+//     The tray is NOT always the last thing on screen. Recorded live (95 captures,
+//     2026-08-10) the bottom was:
+//         ⏵⏵ bypass permissions on · 1 shell · ← 3 agents
+//
+//         ● main
+//         ◯ general-purpose  Grepping transcripts…   4m 41s · ↓ 115.1k tokens
+//         ⧉  branch-explainer
+//     — an open-artifact row sits BELOW the tray. Walking up from the very last line and
+//     stopping at the first non-tray row therefore found nothing and left every session
+//     on "working", which is the bug this comment exists to prevent a second time.
+//     Note also "← 3 agents" in the footer is a static hint, not a live count: an idle
+//     session waiting on user input shows the same number. It must not be used.
 //
 // Both were read off live panes rather than guessed; an earlier attempt matched
 // "esc to interrupt", which this Claude build does not print at all.
@@ -39,6 +51,12 @@ const MAIN_BUSY = /^\s*\S{1,2} \S*…\s*\((?:\d+h\s)?(?:\d+m\s)?\d+s\b/u;
 // A tray row: ● (U+25CF) or ◯ (U+25EF), then the agent name.
 const TRAY_ROW = /^[●◯]\s+(\S+)/u;
 
+// How many rows may sit below the tray before we give up looking for it. Live captures
+// showed one (an open-artifact row); a few more are allowed in case the footer grows.
+// It stays small on purpose: the further up we are willing to look, the more likely we
+// land on transcript text, which Claude also prints as "● …".
+const MAX_ROWS_BELOW_TRAY = 6;
+
 export interface ScreenRead {
   /** main is generating or running a tool right now — do not interrupt */
   mainBusy: boolean;
@@ -53,10 +71,14 @@ export function readScreen(lines: string[]): ScreenRead {
 
   const mainBusy = lines.slice(Math.max(0, end - TAIL_LINES), end).some((l) => MAIN_BUSY.test(l));
 
-  // The tray is the last unbroken block of rows; walk up from the bottom and stop at
-  // the first line that is not one.
+  // Find the tray's bottom row first, skipping the few rows that can sit below it, then
+  // read the unbroken block upward from there.
+  let bottom = -1;
+  for (let i = end - 1; i >= 0 && end - 1 - i < MAX_ROWS_BELOW_TRAY; i--) {
+    if (TRAY_ROW.test(lines[i].trim())) { bottom = i; break; }
+  }
   const names: string[] = [];
-  for (let i = end - 1; i >= 0; i--) {
+  for (let i = bottom; i >= 0; i--) {
     const m = TRAY_ROW.exec(lines[i].trim());
     if (!m) break;
     names.unshift(m[1]);

@@ -135,4 +135,27 @@ describe("refineWithScreen — 제목만 보던 판정을 화면으로 나눈다
     expect(out.get("b")?.state).toBe("inactive");
     expect(out.get("c")?.state).toBe("agents");
   });
+
+  // 2026-08-10 실제 화면 그대로. 트레이 아래에 열린 산출물 줄(⧉)이 하나 더 있어서
+  // 맨 밑에서 위로 훑던 옛 코드가 트레이에 닿기도 전에 멈췄다 — 그래서 계속 초록이었다.
+  it("트레이 아래에 다른 줄이 있어도 읽는다 (실측 화면)", () => {
+    const real = [
+      "───────────────────────────── chageun ──",
+      "❯ 그렇게 진행해줘",
+      "────────────────────────────────────────",
+      "  5h: 27% (1h 55m left) | 7d: 19%      /rc",
+      "  ⏵⏵ bypass permissions on · 1 shell · ← 3 agents",
+      "",
+      "  ● main",
+      "  ◯ general-purpose  Grepping transcripts   4m 41s · ↓ 115.1k tokens",
+      "  ⧉  branch-explainer",
+    ];
+    expect(readScreen(real)).toEqual({ mainBusy: false, agents: ["general-purpose"] });
+    expect(refineWithScreen(base("working"), () => real).get("s")?.state).toBe("agents");
+  });
+
+  it("트레이가 화면에서 너무 멀면 안 읽는다 (기록글의 ● 를 에이전트로 착각 방지)", () => {
+    const far = ["● main", "◯ general-purpose", "a", "b", "c", "d", "e", "f", "g"];
+    expect(readScreen(far).agents).toEqual([]);
+  });
 });
