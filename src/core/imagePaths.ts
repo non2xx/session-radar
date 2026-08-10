@@ -102,12 +102,35 @@ export function findTruncatedSpan(
 ): (ImageSpan & { file: string }) | undefined {
   if (line.length > MAX_LINE) return undefined;
   const trimmed = line.replace(/\s+$/, "");
-  // 마지막 낱말 **전체**가 / 나 ~/ 로 시작해야 한다. 줄 안의 첫 슬래시부터 잡으면
-  // 상대경로 `foo/tmp/shot_ab` 가 `/tmp/shot_ab` 로 둔갑해 엉뚱한 폴더를 뒤진다.
-  const raw = trimmed.split(/\s/).pop() ?? "";
-  if (!/^(?:~\/|\/)/.test(raw) || raw.length < MIN_TRUNCATED) return undefined;
-  const start = trimmed.length - raw.length;
+  const token = trimmed.split(/\s/).pop() ?? "";
+  const tokenStart = trimmed.length - token.length;
 
+  // 시작 자리를 **여러 개** 시도한다. 접히면서 앞줄 글자가 달라붙는 일이 있어서
+  // (`가~/projects/...`), 낱말 첫 글자만 보면 그 줄을 통째로 놓친다.
+  //
+  // 단 잘라 보는 자리는 `~/` 뿐이다. `~` 는 낱말 안에 우연히 끼기 어려워 "여기가 경로 시작"이
+  // 거의 확실하다. 반면 안쪽 `/` 까지 자르면 상대경로 `artifacts/tmp/preview_ab` 가
+  // `/tmp/preview_ab` 로 둔갑해, 가리킨 적도 없는 폴더의 사진이 열린다.
+  // 여긴 파일 이름이 잘려 있어서 "그 파일이 진짜 있나"로 걸러낼 수도 없다.
+  for (const off of pathStarts(token, true)) {
+    const raw = token.slice(off);
+    if (raw.length < MIN_TRUNCATED) continue;
+    // 줄이 접히는 대신 **잘릴** 때는 끝에 표시가 붙기도 하고(…), 테두리 상자 안이면
+    // 세로줄이 붙는다. 그대로 두면 폴더 안에서 그 글자로 시작하는 게 없어 늘 실패한다.
+    for (const cand of [raw, raw.replace(TRAIL_MARK, "")]) {
+      if (cand.length < MIN_TRUNCATED) continue;
+      const file = walkTruncated(cand, probe);
+      if (file) return { start: tokenStart + off, raw: cand, file };
+    }
+  }
+  return undefined;
+}
+
+/** 잘림 표시·테두리 글자. 경로 글자로는 안 쓰이는 것만 골랐다. */
+const TRAIL_MARK = /[…⋯»›|│┃‥]+$/;
+
+/** 잘린 경로 하나를 폴더를 따라가며 되살린다. 못 찾으면 undefined. */
+function walkTruncated(raw: string, probe: FileProbe): string | undefined {
   const p = raw.startsWith("~/") ? join(homedir(), raw.slice(2)) : raw;
   // 확장자까지 멀쩡히 있는 경로는 잘린 게 아니다 — 평소 경로로 처리되거나, 없는 파일이거나.
   if (IMAGE_EXT_RE.test(p) || probe.isFile(p)) return undefined;
@@ -120,10 +143,7 @@ export function findTruncatedSpan(
     const hits = probe.list(dir, head);
     if (hits.length !== 1) return undefined; // 후보가 없거나 여럿이면 포기
     const cand = join(dir, hits[0]);
-    if (probe.isFile(cand)) {
-      if (!IMAGE_EXT_RE.test(cand)) return undefined;
-      return { start, raw, file: cand };
-    }
+    if (probe.isFile(cand)) return IMAGE_EXT_RE.test(cand) ? cand : undefined;
     if (!probe.isDir(cand)) return undefined;
     dir = cand;
     head = ""; // 폴더 안으로 한 칸 내려간다. 항목이 딱 하나일 때만 계속된다.
@@ -149,6 +169,76 @@ export function resolveImagePath(
 
   const candidates = isAbsolute(p) ? [p] : roots.map((r) => join(r, p));
   for (const c of candidates) if (exists(c)) return c;
+  return undefined;
+}
+
+export const MAX_CUTS = 8; // 앞을 잘라 보는 횟수 상한
+
+/**
+ * 이 글자덩어리에서 "경로가 시작될 법한 자리"들. 앞에서부터 시도할 순서로 돌려준다.
+ * 0번(통째로)이 먼저이고, 그다음이 안쪽 `/` · `~/` 자리다.
+ */
+function pathStarts(raw: string, tildeOnly = false): number[] {
+  const out: number[] = [0];
+  for (let i = 1; i < raw.length && out.length <= MAX_CUTS; i++) {
+    const tilde = raw[i] === "~" && raw[i + 1] === "/";
+    if (tilde || (!tildeOnly && raw[i] === "/")) out.push(i);
+  }
+  return out;
+}
+
+/**
+ * 경로 앞에 딴 글자가 붙어 있어도 살려 낸다.
+ *
+ * 터미널이 줄을 접을 때 앞줄의 글자가 경로에 붙어 나오는 일이 있다(실제로 겪은 모양:
+ * `가~/projects/.../s04.png`). 파이썬 오류의 `File "/home/...` 처럼 장식이 붙는 경우도 같다.
+ * 붙은 글자를 종류로 판별하려 들면 한글 폴더 이름(`기술제안_.../s01.png`)까지 잘라 먹으므로,
+ * **잘라 본 뒤 실제로 파일이 있을 때만** 받아들인다. 잘못 자르면 그냥 안 맞아서 버려진다.
+ *
+ * @returns 찾은 파일과, 원래 글자에서 몇 칸 뒤부터가 진짜 경로인지(offset)
+ */
+export function resolveSpanPath(
+  raw: string,
+  roots: string[] = [],
+  exists: (p: string) => boolean = isFile,
+): { file: string; offset: number } | undefined {
+  for (const off of pathStarts(raw)) {
+    const file = resolveImagePath(raw.slice(off), roots, exists);
+    if (file) return { file, offset: off };
+  }
+  return undefined;
+}
+
+export const MAX_RECENT_DIRS = 8;
+
+/**
+ * 접힌 **뒷조각**을, 최근에 연 사진들의 폴더에 비춰 되살린다.
+ *
+ * 앞조각만으로는 한계가 뚜렷하다. 사진이 여러 장 든 폴더면 남은 글자로 시작하는 후보가
+ * 여럿이라 늘 포기한다(그게 맞는 판단이다). 그런데 뒷조각에는 보통 **파일 이름이 통째로**
+ * 들어 있다. 모자란 건 폴더뿐이고, 그 폴더는 조금 전에 연 사진이 알려 준다.
+ *
+ * 아무 폴더나 대보지 않는다. 조각이 그 파일 경로의 **꼬리와 정확히 맞아떨어질 때만** 받는다.
+ * `밸브_v4.pptx.imgs/s04.png` 는 `/…/기술제안_…_v4.pptx.imgs/s04.png` 의 꼬리라서 맞고,
+ * 우연히 이름만 같은 남의 파일은 대개 여기서 걸린다.
+ */
+export function resolveByRecentDirs(
+  raw: string,
+  recentDirs: string[],
+  exists: (p: string) => boolean = isFile,
+): string | undefined {
+  const span = raw.trim().replace(/^[@(\[<'"`]+/, "").replace(/[)\]>,.;:'"`]+$/, "");
+  // 앞이 잘린 조각은 `/s04.png` 처럼 슬래시로 시작하기도 한다(그 자체로는 없는 경로다).
+  // 이 함수는 평소 방법이 이미 실패한 뒤에만 불리므로 그런 모양도 받아 준다.
+  if (!span || !IMAGE_EXT_RE.test(span)) return undefined;
+  const cut = span.lastIndexOf("/");
+  const base = cut < 0 ? span : span.slice(cut + 1);
+  if (!base) return undefined;
+
+  for (const dir of recentDirs.slice(0, MAX_RECENT_DIRS)) {
+    const cand = join(dir, base);
+    if (cand.endsWith(span) && exists(cand)) return cand;
+  }
   return undefined;
 }
 

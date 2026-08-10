@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import { mkdirSync, existsSync, statSync } from "node:fs";
-import { SessionRadarProvider, STATUS_DIR, LAYOUT_FILE, OPEN_FILE } from "./ui/treeProvider";
+import { existsSync, statSync } from "node:fs";
+import { SessionRadarProvider, LAYOUT_FILE, OPEN_FILE } from "./ui/treeProvider";
 import { registerCommands } from "./ui/commands";
 import { registerImageCompare } from "./ui/imageCompare";
 import { registerImageLinks } from "./ui/imageLinks";
@@ -53,8 +53,6 @@ export function activate(context: vscode.ExtensionContext) {
   let startViewWork: () => void = () => {};
   card = new CardViewProvider(refreshAll, () => startViewWork());
   provider.onChanged = refreshAll; // tree drag refreshes both views
-
-  mkdirSync(STATUS_DIR, { recursive: true }); // ensure dir exists before watching
 
   const view = vscode.window.createTreeView("sessionRadar.view", {
     treeDataProvider: provider,
@@ -113,14 +111,6 @@ export function activate(context: vscode.ExtensionContext) {
       sub.dispose();
     }, 3500); // 느린 원격에서 VS Code 자체 터미널 복원을 기다릴 여유(중복 attach 방지)
   };
-
-  const watcher = vscode.workspace.createFileSystemWatcher(
-    new vscode.RelativePattern(vscode.Uri.file(STATUS_DIR), "*.json")
-  );
-  watcher.onDidCreate(refreshAll);
-  watcher.onDidChange(refreshAll);
-  watcher.onDidDelete(refreshAll);
-  context.subscriptions.push(watcher);
 
   // tmux 상태 폴링과 자동 재접속은 "이 창에서 뷰가 보였을 때" 시작한다.
   // 시작 시 활성화(onStartupFinished)가 필요한 것은 터미널 링크 가로채기 하나뿐이라,

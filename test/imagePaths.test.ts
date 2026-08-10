@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { findImageSpans, findTruncatedSpan, resolveImagePath, extractImagePaths } from "../src/core/imagePaths";
+import { findImageSpans, findTruncatedSpan, resolveImagePath, resolveSpanPath, resolveByRecentDirs, extractImagePaths } from "../src/core/imagePaths";
 import type { FileProbe } from "../src/core/imagePaths";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -126,6 +126,38 @@ describe("findTruncatedSpan — 줄바꿈으로 잘린 경로 되살리기", () 
     expect(line.slice(r!.start, r!.start + r!.raw.length)).toBe(r!.raw);
   });
 
+  it("★ 접히면서 앞줄 글자가 달라붙어도 찾아낸다 (~/ 로 시작할 때)", () => {
+    // 실제로 겪은 모양: `가~/projects/...`. 예전엔 낱말 첫 글자가 ~ 도 / 도 아니라 통째로 놓쳤다.
+    const h = homedir();
+    const tilde = probeOf({
+      [`${h}/shots`]: ["very_long_folder_name_here"],
+      [`${h}/shots/very_long_folder_name_here`]: ["wrapped_image_three.png"],
+      [`${h}/shots/very_long_folder_name_here/wrapped_image_three.png`]: null,
+    });
+    const r = findTruncatedSpan("가~/shots/very_long_folder_name_here/wrapped_ima", tilde);
+    expect(r?.file).toBe(`${h}/shots/very_long_folder_name_here/wrapped_image_three.png`);
+    expect(r?.start).toBe(1); // 밑줄은 '가' 다음부터
+  });
+
+  it("★ 안쪽 슬래시로는 자르지 않는다 (상대경로가 절대경로로 둔갑하는 것 방지)", () => {
+    const withRoot = probeOf({
+      "/": ["tmp"],
+      "/tmp": ["preview_abcdef.png"],
+      "/tmp/preview_abcdef.png": null,
+    });
+    // 이건 진짜 절대경로라 열려야 하고
+    expect(findTruncatedSpan("/tmp/preview_ab", withRoot)?.file).toBe("/tmp/preview_abcdef.png");
+    // 이건 상대경로라 손대면 안 된다
+    expect(findTruncatedSpan("artifacts/tmp/preview_ab", withRoot)).toBeUndefined();
+  });
+
+  it("★ 끝에 잘림 표시가 붙어도 찾아낸다", () => {
+    for (const mark of ["…", "│", "»"]) {
+      const r = findTruncatedSpan(`/home/u/shots/very_long_folder_name_here/wrapped_ima${mark}`, probe);
+      expect(r?.file).toBe("/home/u/shots/very_long_folder_name_here/wrapped_image_three.png");
+    }
+  });
+
   it("★ 폴더 이름 도중에 잘려도 한 칸씩 내려가 찾아낸다", () => {
     const r = findTruncatedSpan("/home/u/shots/very_long_folder_na", probe);
     expect(r?.file).toBe("/home/u/shots/very_long_folder_name_here/wrapped_image_three.png");
@@ -181,5 +213,74 @@ describe("findTruncatedSpan — 줄바꿈으로 잘린 경로 되살리기", () 
 
   it("없는 폴더면 조용히 포기한다", () => {
     expect(findTruncatedSpan("/nope/nothing_here_at_all", probe)).toBeUndefined();
+  });
+});
+
+describe("resolveSpanPath — 앞에 딴 글자가 붙은 경로", () => {
+  const home = homedir();
+  const real = `${home}/projects/note/s04.png`;
+  const exists = (p: string) => p === real || p === "/home/u/a.png";
+
+  it("멀쩡한 경로는 그대로 (자를 일 없음)", () => {
+    expect(resolveSpanPath("/home/u/a.png", [], exists)).toEqual({ file: "/home/u/a.png", offset: 0 });
+  });
+
+  it("★ 터미널이 흘린 글자가 앞에 붙어도 살려 낸다", () => {
+    // 실제로 겪은 모양: 줄을 접으면서 앞줄 글자가 경로에 달라붙었다
+    const r = resolveSpanPath("가~/projects/note/s04.png", [], exists);
+    expect(r?.file).toBe(real);
+    expect(r?.offset).toBe(1); // 밑줄은 '가' 다음부터
+  });
+
+  it("따옴표·괄호가 붙은 절대경로도 살려 낸다", () => {
+    expect(resolveSpanPath('File"/home/u/a.png', [], exists)?.file).toBe("/home/u/a.png");
+    // 괄호·따옴표 하나짜리는 resolveImagePath 가 이미 떼므로 자를 것도 없다(offset 0).
+    expect(resolveSpanPath("(/home/u/a.png", [], exists)).toEqual({ file: "/home/u/a.png", offset: 0 });
+  });
+
+  it("★ 한글로 시작하는 진짜 상대경로를 잘라 먹지 않는다", () => {
+    const rootFile = "/w/기술제안_v4.pptx.imgs/s01.png";
+    const r = resolveSpanPath("기술제안_v4.pptx.imgs/s01.png", ["/w"], (p) => p === rootFile);
+    expect(r).toEqual({ file: rootFile, offset: 0 });
+  });
+
+  it("아무 데서도 안 맞으면 손대지 않는다", () => {
+    expect(resolveSpanPath("가~/없는/경로.png", [], exists)).toBeUndefined();
+  });
+});
+
+describe("resolveByRecentDirs — 접힌 뒷조각 살리기", () => {
+  const real = "/home/u/기술제안_쎄니타리밸브_v4.pptx.imgs/s04.png";
+  const exists = (p: string) => p === real;
+  const dirs = ["/home/u/기술제안_쎄니타리밸브_v4.pptx.imgs"];
+
+  it("★ 폴더가 잘려 나간 뒷조각을 최근 폴더에 비춰 찾는다", () => {
+    expect(resolveByRecentDirs("밸브_v4.pptx.imgs/s04.png", dirs, exists)).toBe(real);
+  });
+
+  it("파일 이름만 남았어도 찾는다", () => {
+    expect(resolveByRecentDirs("s04.png", dirs, exists)).toBe(real);
+  });
+
+  it("★ 꼬리가 안 맞으면 안 받는다 (이름만 같은 남의 파일 방지)", () => {
+    // 같은 이름이지만 폴더 조각이 어긋난다
+    expect(resolveByRecentDirs("다른폴더/s04.png", dirs, exists)).toBeUndefined();
+  });
+
+  it("★ 슬래시로 시작하는 잘린 조각도 받는다 (/s04.png)", () => {
+    // 접히는 자리가 마침 폴더 경계면 아랫줄이 / 로 시작한다. 그 자체로는 없는 경로다.
+    expect(resolveByRecentDirs("/s04.png", dirs, exists)).toBe(real);
+  });
+
+  it("남의 폴더를 가리키는 물결 경로는 꼬리가 안 맞아 안 받는다", () => {
+    expect(resolveByRecentDirs("~/x/s04.png", dirs, exists)).toBeUndefined();
+  });
+
+  it("기억해 둔 폴더가 없으면 아무것도 안 한다", () => {
+    expect(resolveByRecentDirs("s04.png", [], exists)).toBeUndefined();
+  });
+
+  it("이미지가 아니면 안 받는다", () => {
+    expect(resolveByRecentDirs("notes.md", dirs, () => true)).toBeUndefined();
   });
 });

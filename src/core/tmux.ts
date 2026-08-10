@@ -107,3 +107,24 @@ export function readPaneStates(): Map<string, StatusEntry> {
     return new Map(); // no tmux server / tmux not installed / timed out
   }
 }
+
+/**
+ * tmux 가 들고 있는 화면 글자를 그대로 가져온다.
+ *
+ * 확장은 VS Code 에서 터미널을 **한 줄씩만** 받는다. 창이 좁아 경로가 두 줄로 접히면
+ * 어느 쪽도 완전한 경로가 아니라 링크가 죽는다. 원본은 tmux 가 갖고 있으니, 추측해서
+ * 되살리는 대신 직접 읽어서 두 줄을 붙인다.
+ */
+export function capturePane(session: string, back = 200): string[] {
+  if (!isSafeSessionName(session)) return [];
+  try {
+    const out = execFileSync(
+      "tmux",
+      ["capture-pane", "-p", "-t", session, "-S", `-${Math.max(0, Math.floor(back))}`],
+      { encoding: "utf8", timeout: 800, maxBuffer: 2 << 20 },
+    );
+    return out.split("\n");
+  } catch {
+    return []; // tmux 없음 / 그런 세션 없음 / 시간초과
+  }
+}

@@ -8,7 +8,6 @@ import { computeContainerOrder } from "../core/order";
 import { listSessions, readPaneStates } from "../core/tmux";
 import { SessionState, SessionNode, TreeData } from "../core/types";
 
-export const STATUS_DIR = join(homedir(), ".claude", "session-status");
 export const LAYOUT_FILE = join(homedir(), ".claude", "session-radar", "layout.json");
 export const OPEN_FILE = join(homedir(), ".claude", "session-radar", "open.json");
 const DND_MIME = "application/vnd.code.tree.sessionradar";

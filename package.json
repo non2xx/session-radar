@@ -2,7 +2,7 @@
   "name": "session-radar",
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
-  "version": "0.4.7",
+  "version": "0.6.1",
   "license": "MIT",
   "icon": "assets/icon.png",
   "keywords": ["claude", "claude code", "tmux", "sessions", "status", "remote"],
@@ -80,14 +80,14 @@
         "sessionRadar.imageSplitOnClick": {
           "type": "boolean",
           "default": true,
-          "description": "터미널에서 이미지 경로를 Ctrl+클릭하면 새 탭 대신 옆 칸에 나란히 엽니다. 끄면 VS Code 기본 동작(새 탭)으로 돌아갑니다."
+          "description": "터미널에서 이미지 경로를 Ctrl+클릭하면 새 탭 대신 오른쪽 격자에 나란히 엽니다. 끄면 VS Code 기본 동작(새 탭)으로 돌아갑니다."
         },
-        "sessionRadar.imageColumns": {
+        "sessionRadar.imageMaxOpen": {
           "type": "number",
-          "default": 3,
+          "default": 4,
           "minimum": 1,
-          "maximum": 5,
-          "description": "이미지를 몇 칸까지 나란히 펼칠지. 이 수를 넘으면 첫 칸부터 다시 채웁니다."
+          "maximum": 6,
+          "description": "격자에 몇 장까지 펼칠지. 이 수를 넘으면 첫 칸부터 다시 채웁니다. 2장은 위아래, 3장은 위 둘 아래 하나, 4장은 2x2."
         }
       }
     }
