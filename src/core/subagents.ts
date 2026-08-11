@@ -149,6 +149,20 @@ export function agentLabel(n: { description: string; agentType: string }): strin
   return n.description || n.agentType || "이름 없음";
 }
 
+/**
+ * 줄 오른쪽에 쓸 글자. **시간만** 쓴다.
+ *
+ * 🛑 종류(`general-purpose` 등)를 여기 넣지 말 것. 좁은 패널에서 그게 자리를 먹어
+ * **이름이 먼저 잘린다**(실측 화면: `계획서…` · `P…`). 종류는 `agentTooltip` 에 있다.
+ *
+ * 나무 뷰와 카드 뷰가 **이 함수 하나**를 쓴다. 각자 한 줄씩 베껴 두면 한쪽만 고쳐져
+ * 두 화면이 어긋나고, 나무 뷰(`src/ui/`)는 vscode 를 import 해서 시험이 못 닿기 때문에
+ * 그쪽 원복은 아무도 못 잡는다. 규칙을 시험이 닿는 자리에 두는 것이 이 함수의 존재 이유다.
+ */
+export function agentRowMeta(n: { updatedAt: number }, now: number): string {
+  return formatAge(now - n.updatedAt);
+}
+
 /** 마우스를 올렸을 때: 전체 이름 + 종류 + 지난 시간. */
 export function agentTooltip(n: SubagentNode, now: number): string {
   const lines = [agentLabel(n)];

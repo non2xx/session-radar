@@ -7,7 +7,7 @@ import { moveSession } from "../core/mutations";
 import { computeContainerOrder } from "../core/order";
 import { listSessions, readPaneStates } from "../core/tmux";
 import { readAgentsIndex } from "../core/agentsSource";
-import { agentLabel, agentTooltip, formatAge, truncate } from "../core/subagents";
+import { agentLabel, agentRowMeta, agentTooltip, formatAge, truncate } from "../core/subagents";
 import { Item, itemId, sessionItemId } from "../core/treeItems";
 import { SessionState, SessionNode, TreeData, SubagentNode, BlockedEntry } from "../core/types";
 
@@ -57,10 +57,11 @@ function subagentItem(n: SubagentNode, id: string, toggled?: boolean): vscode.Tr
   t.iconPath = n.running
     ? new vscode.ThemeIcon("sync~spin", new vscode.ThemeColor("charts.blue"))
     : new vscode.ThemeIcon("circle-outline", new vscode.ThemeColor("disabledForeground"));
-  // 오른쪽에 종류(`general-purpose` 등)를 같이 쓰면 좁은 패널에서 그게 자리를 먹어
-  // **이름이 먼저 잘린다**(실측: `계획서…` · `P…`). 이름이 이 줄의 전부다 — 종류는 tooltip에만.
-  t.description = formatAge(Date.now() - n.updatedAt);
-  t.tooltip = agentTooltip(n, Date.now()); // 잘리기 전 전체 이름과 종류는 여기에
+  // 오른쪽 글자 규칙은 `agentRowMeta` 하나뿐이다(왜 종류를 안 쓰는지는 그 주석에).
+  // 이 파일은 vscode 를 import 해서 시험이 못 닿으므로, 규칙을 여기 베끼면 원복을 아무도 못 잡는다.
+  const now = Date.now();
+  t.description = agentRowMeta(n, now);
+  t.tooltip = agentTooltip(n, now); // 잘리기 전 전체 이름과 종류는 여기에
   return t;
 }
 

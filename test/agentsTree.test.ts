@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { buildTree, visibleNames } from "../src/core/treeModel";
 import { emptyLayout } from "../src/core/layoutStore";
-import { buildAgentsIndex, emptyAgentsIndex } from "../src/core/subagents";
+import { agentRowMeta, buildAgentsIndex, emptyAgentsIndex } from "../src/core/subagents";
 import { blockedSessions, parseClaudeAgents, pickSessionFor } from "../src/core/claudeAgents";
 import { decorate, CARD_AGENT_ROWS } from "../src/core/cardModel";
 import { StatusEntry, SubagentNode, SubagentSummary } from "../src/core/types";
@@ -93,6 +93,18 @@ describe("카드 뷰 데이터(decorate)", () => {
     expect(d.ungrouped[0].rows[0].meta).not.toContain("general-purpose");
     expect(d.ungrouped[0].rows[0].meta).toBe("방금");
     expect(d.ungrouped[0].rows[0].tip).toContain("general-purpose"); // 종류는 여기 남아 있다
+  });
+
+  // 🛑 위 검사는 **카드 뷰만** 지킨다. 정작 화면에서 이름이 잘린 건 나무 뷰인데
+  // 그 파일(`src/ui/treeProvider.ts`)은 vscode 를 import 해서 시험이 못 닿는다 —
+  // 거기에 종류를 도로 넣어도 전 검사가 초록이었다(리뷰 지적). 그래서 두 뷰가 함께 쓰는
+  // `agentRowMeta` 를 직접 건다. 이걸 지키면 두 화면이 같이 지켜진다.
+  it("★ 두 화면이 함께 쓰는 오른쪽 글자에는 종류가 없다", () => {
+    const n = agent({ description: "일감 하나", agentType: "general-purpose" });
+    const meta = agentRowMeta(n, NOW);
+    expect(meta).toBe("방금");
+    expect(meta).not.toContain("general-purpose");
+    expect(meta).not.toContain(":"); // `chageun:pr-reviewer` 같은 종류도 못 들어온다
   });
 
   it("★ 긴 이름은 웹뷰로 넘어가기 전에 잘린다 (자르기 규칙이 한 곳에만 있게)", () => {

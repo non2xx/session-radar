@@ -1,5 +1,5 @@
 import { SubagentSummary, TreeData } from "./types";
-import { agentLabel, agentTooltip, flattenAgents, formatAge, truncate } from "./subagents";
+import { agentLabel, agentRowMeta, agentTooltip, flattenAgents, formatAge, truncate } from "./subagents";
 
 /** 카드 한 장 밑에 몇 줄까지 붙일지. 16개 세션이 한 화면이라 길어지면 못 쓴다. */
 export const CARD_AGENT_ROWS = 4;
@@ -15,8 +15,8 @@ export function agentRows(sub: SubagentSummary | undefined, now: number) {
     .slice(0, CARD_AGENT_ROWS)
     .map((r) => ({
       label: truncate(agentLabel(r.node)),
-      // 종류는 안 쓴다 — 좁은 칸에서 이름을 밀어내 잘리게 만든다(나무 뷰와 같은 이유).
-      meta: formatAge(now - r.node.updatedAt),
+      // 나무 뷰와 **같은 함수**를 쓴다 — 규칙이 한 곳에만 있어야 두 화면이 안 어긋난다.
+      meta: agentRowMeta(r.node, now),
       tip: agentTooltip(r.node, now),
       level: r.level,
     }));
