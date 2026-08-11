@@ -84,7 +84,15 @@ describe("카드 뷰 데이터(decorate)", () => {
     const d = decorate(tree(summary()), NOW);
     expect(d.ungrouped[0].running).toBe(1);
     expect(d.ungrouped[0].rows[0].label).toBe("일감 하나");
-    expect(d.ungrouped[0].rows[0].meta).toContain("general-purpose");
+  });
+
+  // 실측(2026-08-11 화면): 오른쪽 칸에 종류를 같이 쓰면 좁은 패널에서 **이름이 먼저 잘려**
+  // `계획서…` · `P…` 만 남았다. 이름이 그 줄의 전부여야 한다 — 종류는 tooltip 몫.
+  it("옆 칸에 종류를 쓰지 않는다(이름을 밀어내지 않게)", () => {
+    const d = decorate(tree(summary()), NOW);
+    expect(d.ungrouped[0].rows[0].meta).not.toContain("general-purpose");
+    expect(d.ungrouped[0].rows[0].meta).toBe("방금");
+    expect(d.ungrouped[0].rows[0].tip).toContain("general-purpose"); // 종류는 여기 남아 있다
   });
 
   it("★ 긴 이름은 웹뷰로 넘어가기 전에 잘린다 (자르기 규칙이 한 곳에만 있게)", () => {

@@ -57,9 +57,10 @@ function subagentItem(n: SubagentNode, id: string, toggled?: boolean): vscode.Tr
   t.iconPath = n.running
     ? new vscode.ThemeIcon("sync~spin", new vscode.ThemeColor("charts.blue"))
     : new vscode.ThemeIcon("circle-outline", new vscode.ThemeColor("disabledForeground"));
-  const bits = [n.agentType || "종류 모름", formatAge(Date.now() - n.updatedAt)];
-  t.description = bits.join(" · ");
-  t.tooltip = agentTooltip(n, Date.now()); // 잘리기 전 전체 이름은 여기에
+  // 오른쪽에 종류(`general-purpose` 등)를 같이 쓰면 좁은 패널에서 그게 자리를 먹어
+  // **이름이 먼저 잘린다**(실측: `계획서…` · `P…`). 이름이 이 줄의 전부다 — 종류는 tooltip에만.
+  t.description = formatAge(Date.now() - n.updatedAt);
+  t.tooltip = agentTooltip(n, Date.now()); // 잘리기 전 전체 이름과 종류는 여기에
   return t;
 }
 

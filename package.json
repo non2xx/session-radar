@@ -2,65 +2,196 @@
   "name": "session-radar",
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "license": "MIT",
   "icon": "assets/icon.png",
-  "keywords": ["claude", "claude code", "tmux", "sessions", "status", "remote"],
+  "keywords": [
+    "claude",
+    "claude code",
+    "tmux",
+    "sessions",
+    "status",
+    "remote"
+  ],
   "publisher": "non2xx",
   "private": true,
-  "repository": { "type": "git", "url": "https://github.com/non2xx/session-radar.git" },
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other"],
-  "activationEvents": ["onView:sessionRadar.view", "onView:sessionRadar.cards", "onStartupFinished"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/non2xx/session-radar.git"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:sessionRadar.view",
+    "onView:sessionRadar.cards",
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
       "activitybar": [
-        { "id": "sessionRadar", "title": "session-radar", "icon": "$(pulse)" }
+        {
+          "id": "sessionRadar",
+          "title": "session-radar",
+          "icon": "$(pulse)"
+        }
       ]
     },
     "views": {
       "sessionRadar": [
-        { "id": "sessionRadar.view", "name": "Sessions" },
-        { "id": "sessionRadar.cards", "name": "Sessions (카드)", "type": "webview" }
+        {
+          "id": "sessionRadar.view",
+          "name": "Sessions"
+        },
+        {
+          "id": "sessionRadar.cards",
+          "name": "Sessions (카드)",
+          "type": "webview"
+        }
       ]
     },
     "commands": [
-      { "command": "sessionRadar.refresh", "title": "새로고침", "icon": "$(refresh)" },
-      { "command": "sessionRadar.addGroup", "title": "그룹 추가", "icon": "$(new-folder)" },
-      { "command": "sessionRadar.addSession", "title": "세션 추가", "icon": "$(add)" },
-      { "command": "sessionRadar.renameGroup", "title": "그룹 이름변경" },
-      { "command": "sessionRadar.deleteGroup", "title": "그룹 삭제" },
-      { "command": "sessionRadar.renameSession", "title": "이름변경(별명)" },
-      { "command": "sessionRadar.hideSession", "title": "목록에서 삭제" },
-      { "command": "sessionRadar.setPath", "title": "프로젝트 경로 지정" },
-      { "command": "sessionRadar.clearPath", "title": "경로 지우기" },
-      { "command": "sessionRadar.jumpSplit", "title": "분할로 열기" },
-      { "command": "sessionRadar.closeTerminal", "title": "분할 닫기" },
-      { "command": "sessionRadar.compareImages", "title": "이미지 나란히 보기", "icon": "$(file-media)" },
-      { "command": "sessionRadar.compareImagesAdd", "title": "이미지 비교에 추가" },
-      { "command": "sessionRadar.resetImageColumns", "title": "이미지 칸 배치 처음부터" }
+      {
+        "command": "sessionRadar.refresh",
+        "title": "새로고침",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "sessionRadar.addGroup",
+        "title": "그룹 추가",
+        "icon": "$(new-folder)"
+      },
+      {
+        "command": "sessionRadar.addSession",
+        "title": "세션 추가",
+        "icon": "$(add)"
+      },
+      {
+        "command": "sessionRadar.renameGroup",
+        "title": "그룹 이름변경"
+      },
+      {
+        "command": "sessionRadar.deleteGroup",
+        "title": "그룹 삭제"
+      },
+      {
+        "command": "sessionRadar.renameSession",
+        "title": "이름변경(별명)"
+      },
+      {
+        "command": "sessionRadar.hideSession",
+        "title": "목록에서 삭제"
+      },
+      {
+        "command": "sessionRadar.setPath",
+        "title": "프로젝트 경로 지정"
+      },
+      {
+        "command": "sessionRadar.clearPath",
+        "title": "경로 지우기"
+      },
+      {
+        "command": "sessionRadar.jumpSplit",
+        "title": "분할로 열기"
+      },
+      {
+        "command": "sessionRadar.closeTerminal",
+        "title": "분할 닫기"
+      },
+      {
+        "command": "sessionRadar.compareImages",
+        "title": "이미지 나란히 보기",
+        "icon": "$(file-media)"
+      },
+      {
+        "command": "sessionRadar.compareImagesAdd",
+        "title": "이미지 비교에 추가"
+      },
+      {
+        "command": "sessionRadar.resetImageColumns",
+        "title": "이미지 칸 배치 처음부터"
+      }
     ],
     "menus": {
       "view/title": [
-        { "command": "sessionRadar.addGroup", "when": "view == sessionRadar.view", "group": "navigation" },
-        { "command": "sessionRadar.addSession", "when": "view == sessionRadar.view", "group": "navigation" },
-        { "command": "sessionRadar.refresh", "when": "view == sessionRadar.view", "group": "navigation" },
-        { "command": "sessionRadar.addGroup", "when": "view == sessionRadar.cards", "group": "navigation" },
-        { "command": "sessionRadar.addSession", "when": "view == sessionRadar.cards", "group": "navigation" },
-        { "command": "sessionRadar.refresh", "when": "view == sessionRadar.cards", "group": "navigation" },
-        { "command": "sessionRadar.compareImages", "when": "view == sessionRadar.view", "group": "navigation" },
-        { "command": "sessionRadar.compareImages", "when": "view == sessionRadar.cards", "group": "navigation" }
+        {
+          "command": "sessionRadar.addGroup",
+          "when": "view == sessionRadar.view",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.addSession",
+          "when": "view == sessionRadar.view",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.refresh",
+          "when": "view == sessionRadar.view",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.addGroup",
+          "when": "view == sessionRadar.cards",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.addSession",
+          "when": "view == sessionRadar.cards",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.refresh",
+          "when": "view == sessionRadar.cards",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.compareImages",
+          "when": "view == sessionRadar.view",
+          "group": "navigation"
+        },
+        {
+          "command": "sessionRadar.compareImages",
+          "when": "view == sessionRadar.cards",
+          "group": "navigation"
+        }
       ],
       "view/item/context": [
-        { "command": "sessionRadar.renameGroup", "when": "view == sessionRadar.view && viewItem == group" },
-        { "command": "sessionRadar.deleteGroup", "when": "view == sessionRadar.view && viewItem == group" },
-        { "command": "sessionRadar.jumpSplit", "when": "view == sessionRadar.view && viewItem == session" },
-        { "command": "sessionRadar.closeTerminal", "when": "view == sessionRadar.view && viewItem == session" },
-        { "command": "sessionRadar.renameSession", "when": "view == sessionRadar.view && viewItem == session" },
-        { "command": "sessionRadar.hideSession", "when": "view == sessionRadar.view && viewItem == session" },
-        { "command": "sessionRadar.setPath", "when": "view == sessionRadar.view && viewItem == session" },
-        { "command": "sessionRadar.clearPath", "when": "view == sessionRadar.view && viewItem == session" }
+        {
+          "command": "sessionRadar.renameGroup",
+          "when": "view == sessionRadar.view && viewItem == group"
+        },
+        {
+          "command": "sessionRadar.deleteGroup",
+          "when": "view == sessionRadar.view && viewItem == group"
+        },
+        {
+          "command": "sessionRadar.jumpSplit",
+          "when": "view == sessionRadar.view && viewItem == session"
+        },
+        {
+          "command": "sessionRadar.closeTerminal",
+          "when": "view == sessionRadar.view && viewItem == session"
+        },
+        {
+          "command": "sessionRadar.renameSession",
+          "when": "view == sessionRadar.view && viewItem == session"
+        },
+        {
+          "command": "sessionRadar.hideSession",
+          "when": "view == sessionRadar.view && viewItem == session"
+        },
+        {
+          "command": "sessionRadar.setPath",
+          "when": "view == sessionRadar.view && viewItem == session"
+        },
+        {
+          "command": "sessionRadar.clearPath",
+          "when": "view == sessionRadar.view && viewItem == session"
+        }
       ]
     },
     "configuration": {
@@ -73,7 +204,10 @@
         },
         "sessionRadar.terminalLocation": {
           "type": "string",
-          "enum": ["panel", "editor"],
+          "enum": [
+            "panel",
+            "editor"
+          ],
           "default": "panel",
           "description": "세션 터미널을 여는 위치 — panel(하단 패널, 코드가 메인) 또는 editor(메인 에디터 영역, 터미널이 메인). '분할로 열기'는 설정과 무관하게 항상 에디터 영역에 좌우로 타일됩니다."
         },

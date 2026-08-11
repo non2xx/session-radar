@@ -15,7 +15,8 @@ export function agentRows(sub: SubagentSummary | undefined, now: number) {
     .slice(0, CARD_AGENT_ROWS)
     .map((r) => ({
       label: truncate(agentLabel(r.node)),
-      meta: `${r.node.agentType || "종류 모름"} · ${formatAge(now - r.node.updatedAt)}`,
+      // 종류는 안 쓴다 — 좁은 칸에서 이름을 밀어내 잘리게 만든다(나무 뷰와 같은 이유).
+      meta: formatAge(now - r.node.updatedAt),
       tip: agentTooltip(r.node, now),
       level: r.level,
     }));
