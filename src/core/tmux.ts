@@ -52,7 +52,8 @@ export function invalidateSessionCache(): void {
 // ---- Live pane state, read straight from tmux (ground truth) ----
 // The hook-written status files go stale between events (a long tool run fires no
 // hook, so the file freezes). tmux always knows the truth: whether `claude` is the
-// foreground process, and Claude's own title glyph (braille spinner = working, ✳ = turn).
+// foreground process, and Claude's own title glyph (spinner = working, ✳ = turn; the
+// spinner's glyph set is a build detail, so isSpinnerGlyph below owns the exact list).
 
 // tmux keeps the last pane title after the program that set it exits, and inside tmux the
 // distro .bashrc does not repaint it (its title code only runs for TERM=xterm*). So a pane
@@ -84,7 +85,9 @@ const rank = (s: SessionState): number =>
   s === "working" ? 4 : s === "agents" ? 3 : s === "turn" ? 2 : 1;
 
 // Parse `#{session_name}\t#{pane_current_command}\t#{pane_title}\t#{window_activity}` lines.
-// A session with multiple panes takes its strongest state (working > turn > inactive).
+// A session with multiple panes takes its strongest state, in the order `rank` above encodes.
+// Only working/turn/inactive can come out of here; `agents` is added later, per session, by
+// refineWithScreen — `rank` carries it so the two stages share one ordering.
 export function parsePaneStates(raw: string): Map<string, StatusEntry> {
   const out = new Map<string, StatusEntry>();
   for (const line of raw.split("\n")) {

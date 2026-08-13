@@ -2,7 +2,7 @@ import { SessionState, StatusEntry } from "./types";
 
 // ---- Telling "main is answering" apart from "only subagents are running" ----
 //
-// The tmux pane title is not enough. Claude paints the braille spinner into the title
+// The tmux pane title is not enough. Claude paints its title spinner (see isSpinnerGlyph)
 // whenever *anything* is running — including a subagent it dispatched — so a session
 // whose main conversation is idle and ready for input still reads as "working".
 // That is the false "busy" this module fixes.

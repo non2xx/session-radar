@@ -1,5 +1,5 @@
 import { SubagentSummary, TreeData } from "./types";
-import { agentLabel, agentRowMeta, agentTooltip, flattenAgents, formatAge, truncate } from "./subagents";
+import { agentLabel, agentRowMeta, agentTooltip, blockedAgeLabel, blockedAgeTip, flattenAgents, formatAge, truncate } from "./subagents";
 
 /** 카드 한 장 밑에 몇 줄까지 붙일지. 16개 세션이 한 화면이라 길어지면 못 쓴다. */
 export const CARD_AGENT_ROWS = 4;
@@ -32,9 +32,9 @@ export function decorate(data: TreeData, now: number) {
     blocked: data.blocked.map((b) => ({
       name: b.session.name,
       cwd: b.session.cwd,
-      age: formatAge(b.ageMs),
+      age: blockedAgeLabel(b.ageMs),
       tip: [
-        `${b.session.name} — ${formatAge(b.ageMs)}째 막혀 있어요`,
+        blockedAgeTip(b.session.name, b.ageMs),
         `📁 ${b.session.cwd}`,
         `세션 ID: ${b.session.sessionId}`,
       ].join("\n"),

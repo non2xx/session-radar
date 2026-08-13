@@ -163,7 +163,7 @@ export class CardViewProvider implements vscode.WebviewViewProvider {
       root.appendChild(bh);
       for(const b of data.blocked){
         const d=document.createElement('div');d.className='blk';
-        d.innerHTML='<span class="bdot"></span><span class="nm">'+esc(b.name)+'</span><span class="ago">'+esc(b.age)+' 방치</span>';
+        d.innerHTML='<span class="bdot"></span><span class="nm">'+esc(b.name)+'</span><span class="ago">'+esc(b.age)+'</span>';
         d.title=b.tip;
         root.appendChild(d);
       }

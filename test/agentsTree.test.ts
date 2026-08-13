@@ -135,10 +135,10 @@ describe("카드 뷰 데이터(decorate)", () => {
     expect(d.ungrouped[0].rows.map((r) => [r.label, r.level])).toEqual([["부모", 0], ["자식", 1]]);
   });
 
-  it("막힌 세션은 방치 기간과 경로를 갖고 넘어간다", () => {
+  it("막힌 세션은 켠 지 기간과 경로를 갖고 넘어간다", () => {
     const d = decorate(tree(undefined), NOW);
     expect(d.blocked).toHaveLength(1);
-    expect(d.blocked[0].age).toBe("49일");
+    expect(d.blocked[0].age).toBe("켠 지 49일"); // 라벨은 core 의 blockedAgeLabel 하나가 만든다
     expect(d.blocked[0].tip).toContain("/p/erp");
   });
 

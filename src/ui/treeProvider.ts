@@ -7,7 +7,7 @@ import { moveSession } from "../core/mutations";
 import { computeContainerOrder } from "../core/order";
 import { listSessions, readPaneStates } from "../core/tmux";
 import { readAgentsIndex } from "../core/agentsSource";
-import { agentLabel, agentRowMeta, agentTooltip, formatAge, truncate } from "../core/subagents";
+import { agentLabel, agentRowMeta, agentTooltip, blockedAgeLabel, blockedAgeTip, formatAge, truncate } from "../core/subagents";
 import { Item, itemId, sessionItemId } from "../core/treeItems";
 import { SessionState, SessionNode, TreeData, SubagentNode, BlockedEntry } from "../core/types";
 
@@ -77,14 +77,14 @@ function blockedRootItem(count: number, id: string, toggled?: boolean): vscode.T
 function blockedSessionItem(b: BlockedEntry, id: string, toggled?: boolean): vscode.TreeItem {
   const sub = b.subagents;
   const rows = sub ? sub.shown.length + (sub.hidden > 0 ? 1 : 0) : 0;
-  // 막힌 세션은 접어서 시작한다 — 목록이 길고, 여기서 알고 싶은 건 "얼마나 방치됐나"라서.
+  // 막힌 세션은 접어서 시작한다 — 목록이 길고, 여기서 알고 싶은 건 "켠 지 얼마나 됐나"라서.
   const t = new vscode.TreeItem(b.session.name, foldState(rows > 0, toggled, false));
   t.id = id;
   t.contextValue = "blockedSession";
   t.iconPath = new vscode.ThemeIcon("debug-pause", new vscode.ThemeColor("charts.red"));
-  t.description = `${formatAge(b.ageMs)} 방치`;
+  t.description = blockedAgeLabel(b.ageMs);
   t.tooltip = [
-    `${b.session.name} — ${formatAge(b.ageMs)}째 막혀 있어요`,
+    blockedAgeTip(b.session.name, b.ageMs),
     `📁 ${b.session.cwd}`,
     `종류: ${b.session.kind} · 상태: ${b.session.activity}`,
     `세션 ID: ${b.session.sessionId}`,

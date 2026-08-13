@@ -57,5 +57,5 @@ export interface SubagentSummary {
   total: number;           // 이 세션이 지금까지 부른 총 개수
 }
 
-// 몇 주씩 방치된 세션. 이 기능의 핵심 — tmux 세션이 아예 없어도 보여야 한다.
+// 몇 주씩 막혀 있는 세션(기간은 켠 시각 기준). 이 기능의 핵심 — tmux 세션이 아예 없어도 보여야 한다.
 export interface BlockedEntry { session: ClaudeSession; subagents?: SubagentSummary; ageMs: number; }

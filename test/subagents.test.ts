@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   RUNNING_MS, agentLabel, agentTooltip, buildAgentsIndex, encodeProjectDir, flattenAgents,
-  formatAge, scanSubagents, subagentsDir, truncate, SubagentFs,
-} from "../src/core/subagents";
+  formatAge, scanSubagents, subagentsDir, truncate, SubagentFs, blockedAgeLabel, blockedAgeTip } from "../src/core/subagents";
 import { blockedSessions, parseClaudeAgents, pickSessionFor } from "../src/core/claudeAgents";
 import { ClaudeSession, SubagentSummary } from "../src/core/types";
 
@@ -245,7 +244,7 @@ describe("buildAgentsIndex", () => {
     expect(idx.blocked[0].subagents?.running).toBe(1);
   });
 
-  it("막힌 기간을 잰다", () => {
+  it("켠 지 얼마을 잰다", () => {
     expect(formatAge(build([]).blocked[0].ageMs)).toBe("49일");
   });
 
@@ -258,5 +257,23 @@ describe("buildAgentsIndex", () => {
   it("경로로도 짝을 짓는다", () => {
     const idx = build(["별명"], { "별명": "/p/honclwd" });
     expect(idx.bySession.get("별명")?.claude?.sessionId).toBe("S1");
+  });
+});
+
+describe("막힌 세션 기간 문구", () => {
+  // 이 문장은 트리 뷰(줄 + hover)와 카드 뷰가 함께 쓴다. 예전에 세 곳에 베껴져 있다가
+  // 한 곳만 고쳐져 같은 줄이 서로 반대말을 한 적이 있어, 여기서 한 번에 잠근다.
+  it("'막힌 지'가 아니라 '켠 지'라고 말한다", () => {
+    const label = blockedAgeLabel(3 * 24 * 60 * 60 * 1000);
+    expect(label).toContain("켠 지");
+    expect(label).not.toContain("방치");
+    expect(label).not.toContain("막혀");
+  });
+
+  it("hover 문장은 같은 라벨을 품고, 기준이 세션을 켠 시각임을 밝힌다", () => {
+    const tip = blockedAgeTip("alpha", 3 * 24 * 60 * 60 * 1000);
+    expect(tip).toContain("alpha");
+    expect(tip).toContain(blockedAgeLabel(3 * 24 * 60 * 60 * 1000));
+    expect(tip).toContain("켠 시각");
   });
 });

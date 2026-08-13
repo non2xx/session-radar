@@ -72,7 +72,7 @@ export function pickSessionFor(
   return pool.reduce((a, b) => ((b.startedAt ?? 0) > (a.startedAt ?? 0) ? b : a));
 }
 
-/** 막힌 것만. 오래 방치된 것이 위로 온다(가장 급한 순서). */
+/** 막힌 것만. 먼저 켠 것이 위로 온다(startedAt 오름차순 - "막힌 지 오래"가 아니라 "켠 지 오래"다). */
 export function blockedSessions(sessions: ClaudeSession[]): ClaudeSession[] {
   return sessions
     .filter((s) => s.blocked)

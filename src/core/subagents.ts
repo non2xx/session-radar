@@ -187,6 +187,16 @@ export function flattenAgents(
   return out;
 }
 
+// 막힌 세션에 붙는 기간의 **말**은 여기 하나뿐이다. 값은 now - startedAt, 즉 세션을
+// 켠 시각 기준이라 "막힌 지"가 아니다. 두 화면이 이 문장을 각자 베껴 쓰다가 한쪽만
+// 고쳐져 줄과 hover 가 서로 반대말을 한 적이 있어, 한 곳으로 모았다.
+export function blockedAgeLabel(ageMs: number): string {
+  return `켠 지 ${formatAge(ageMs)}`;
+}
+export function blockedAgeTip(name: string, ageMs: number): string {
+  return `${name}: ${blockedAgeLabel(ageMs)} (막힌 시각이 아니라 세션을 켠 시각 기준)`;
+}
+
 /** "방금 / 3분 / 5시간 / 12일" — 생활어 한 토막. */
 export function formatAge(ms: number): string {
   if (!isFinite(ms) || ms < 0) return "방금";

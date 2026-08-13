@@ -97,7 +97,7 @@ describe("pickSessionFor — tmux 세션 한 개에 짝 지을 claude 세션", (
 });
 
 describe("blockedSessions", () => {
-  it("막힌 것만, 오래 방치된 것이 위로", () => {
+  it("막힌 것만, 오래 오래된 것이 위로", () => {
     const list = parseClaudeAgents(JSON.stringify([
       { sessionId: "b", cwd: "/b", kind: "background", name: "새것", startedAt: 200, state: "blocked" },
       { sessionId: "a", cwd: "/a", kind: "background", name: "묵은것", startedAt: 100, state: "blocked" },
