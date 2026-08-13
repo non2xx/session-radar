@@ -10,6 +10,13 @@ describe("parsePaneStates", () => {
     expect(parsePaneStates(line("note", "claude", "⠋ note")).get("note")?.state).toBe("working");
   });
 
+  it("★ claude + 반원 스피너 제목 → working (2.1.231 이 점자에서 바꾼 글자)", () => {
+    // 실측 2026-08-13: 답하는 중인 세션 제목이 "◐ alpha" 였는데 점자만 인정해 '내 차례'로 떨어졌다.
+    for (const g of ["◐", "◑", "◒", "◓"]) {
+      expect(parsePaneStates(line("alpha", "claude", `${g} alpha`)).get("alpha")?.state).toBe("working");
+    }
+  });
+
   it("claude + ✳ title → turn (내 차례)", () => {
     expect(parsePaneStates(line("vp-erp", "claude", "✳ vp-erp")).get("vp-erp")?.state).toBe("turn");
   });

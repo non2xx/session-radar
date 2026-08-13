@@ -2,7 +2,7 @@
   "name": "session-radar",
   "displayName": "session-radar",
   "description": "Claude Code session status panel (tmux, remote)",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "license": "MIT",
   "icon": "assets/icon.png",
   "keywords": [

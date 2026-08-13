@@ -64,10 +64,21 @@ function firstGlyph(title: string): string {
   const t = title.replace(/^\s+/, "");
   return t ? [...t][0] : "";
 }
-// Claude's working spinner is animated braille (U+2800–U+28FF); any frame means "working".
+// Claude's working spinner: any frame of it in the title means "working".
+// Two alphabets, because the glyph set is a Claude Code build detail that has already
+// changed once under us:
+//   1) braille (U+2800–U+28FF) — ⠋⠙⠹…, what older builds painted.
+//   2) half-circles (U+25D0–U+25D3) — ◐◓◑◒, what 2.1.231 paints. Measured live
+//      2026-08-13: sessions that were mid-answer wore titles like "◐ alpha", which
+//      matched neither range and fell through to "turn". Every busy session read as
+//      "your turn", and because refineWithScreen only inspects sessions that are
+//      already "working", the whole agents/working split went dark with it.
+// Keep both: a title glyph is cheap to accept and the cost of missing one is the
+// silent failure above. ✳ (turn) is checked separately by the caller.
 function isSpinnerGlyph(ch: string): boolean {
   const c = ch.codePointAt(0);
-  return c !== undefined && c >= 0x2800 && c <= 0x28ff;
+  if (c === undefined) return false;
+  return (c >= 0x2800 && c <= 0x28ff) || (c >= 0x25d0 && c <= 0x25d3);
 }
 const rank = (s: SessionState): number =>
   s === "working" ? 4 : s === "agents" ? 3 : s === "turn" ? 2 : 1;
