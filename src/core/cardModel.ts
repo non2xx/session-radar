@@ -1,5 +1,5 @@
 import { SubagentSummary, TreeData } from "./types";
-import { agentLabel, agentRowMeta, agentTooltip, blockedAgeLabel, blockedAgeTip, flattenAgents, formatAge, truncate } from "./subagents";
+import { agentLabel, agentRowMeta, agentTooltip, blockedAgeLabel, blockedAgeTip, flattenAgents, truncate } from "./subagents";
 
 /** 카드 한 장 밑에 몇 줄까지 붙일지. 16개 세션이 한 화면이라 길어지면 못 쓴다. */
 export const CARD_AGENT_ROWS = 4;

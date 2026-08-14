@@ -7,7 +7,7 @@ import { moveSession } from "../core/mutations";
 import { computeContainerOrder } from "../core/order";
 import { listSessions, readPaneStates } from "../core/tmux";
 import { readAgentsIndex } from "../core/agentsSource";
-import { agentLabel, agentRowMeta, agentTooltip, blockedAgeLabel, blockedAgeTip, formatAge, truncate } from "../core/subagents";
+import { agentLabel, agentRowMeta, agentTooltip, blockedAgeLabel, blockedAgeTip, truncate } from "../core/subagents";
 import { Item, itemId, sessionItemId } from "../core/treeItems";
 import { SessionState, SessionNode, TreeData, SubagentNode, BlockedEntry } from "../core/types";
 

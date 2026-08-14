@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   RUNNING_MS, agentLabel, agentTooltip, buildAgentsIndex, encodeProjectDir, flattenAgents,
-  formatAge, scanSubagents, subagentsDir, truncate, SubagentFs, blockedAgeLabel, blockedAgeTip } from "../src/core/subagents";
+  formatAge, scanSubagents, subagentsDir, truncate, SubagentFs, blockedAgeLabel, blockedAgeTip,
+} from "../src/core/subagents";
 import { blockedSessions, parseClaudeAgents, pickSessionFor } from "../src/core/claudeAgents";
 import { ClaudeSession, SubagentSummary } from "../src/core/types";
 
@@ -244,7 +245,7 @@ describe("buildAgentsIndex", () => {
     expect(idx.blocked[0].subagents?.running).toBe(1);
   });
 
-  it("켠 지 얼마을 잰다", () => {
+  it("켠 지 얼마나 됐는지 잰다", () => {
     expect(formatAge(build([]).blocked[0].ageMs)).toBe("49일");
   });
 
