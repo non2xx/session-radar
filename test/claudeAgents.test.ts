@@ -1,13 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { parseClaudeAgents, pickSessionFor, blockedSessions } from "../src/core/claudeAgents";
 
-// 이 기계에서 실제로 나온 출력 모양(2026-08-10). 이름·경로만 그대로 두고 줄 수만 줄였다.
+// 이 기계에서 실제로 나온 출력 모양(2026-08-10). 줄 수를 줄이고, 이름·경로는 공개용
+// 예시로 바꿨다. 믿을 수 있는 것은 칸 구성과 값의 모양(id 대 pid, status 대 state)이다.
 const REAL = JSON.stringify([
-  { id: "f627850e", cwd: "/home/mokgam/projects/VALVEPARK-ERP", kind: "background",
-    startedAt: 1782193582958, sessionId: "f627850e-f6f9", name: "vp-erp", state: "blocked" },
-  { pid: 10687, cwd: "/home/mokgam/projects/honclwd", kind: "interactive",
-    startedAt: 1786260973721, sessionId: "3bd9f10e-5ab9", name: "chageun", status: "busy" },
-  { pid: 291471, cwd: "/home/mokgam/projects/design-system", kind: "interactive",
+  { id: "f627850e", cwd: "/home/user/projects/PROJECT-B", kind: "background",
+    startedAt: 1782193582958, sessionId: "f627850e-f6f9", name: "beta", state: "blocked" },
+  { pid: 10687, cwd: "/home/user/projects/project-a", kind: "interactive",
+    startedAt: 1786260973721, sessionId: "3bd9f10e-5ab9", name: "alpha", status: "busy" },
+  { pid: 291471, cwd: "/home/user/projects/design-system", kind: "interactive",
     startedAt: 1786264204404, sessionId: "ce59bd2c", name: "design-system",
     status: "waiting", waitingFor: "input needed" },
 ]);
@@ -16,7 +17,7 @@ describe("parseClaudeAgents", () => {
   it("interactive 는 status, background 는 state — 둘 다 activity 로 읽는다", () => {
     const list = parseClaudeAgents(REAL);
     expect(list.map((s) => `${s.name}:${s.activity}`))
-      .toEqual(["vp-erp:blocked", "chageun:busy", "design-system:waiting"]);
+      .toEqual(["beta:blocked", "alpha:busy", "design-system:waiting"]);
     expect(list[0].kind).toBe("background");
     expect(list[1].kind).toBe("interactive");
   });
@@ -66,21 +67,21 @@ describe("pickSessionFor — tmux 세션 한 개에 짝 지을 claude 세션", (
   const list = parseClaudeAgents(REAL);
 
   it("이름이 같은 interactive 를 고른다", () => {
-    expect(pickSessionFor(list, "chageun")?.sessionId).toBe("3bd9f10e-5ab9");
+    expect(pickSessionFor(list, "alpha")?.sessionId).toBe("3bd9f10e-5ab9");
   });
 
   it("★ 이름이 같아도 background(막힌) 줄은 붙이지 않는다", () => {
-    // 실측: 이름 'vp-erp'가 tmux 세션에도 있고 7주 막힌 background 줄에도 있었다.
+    // 실측: 이름 'beta'가 tmux 세션에도 있고 7주 막힌 background 줄에도 있었다.
     // 붙여 버리면 멀쩡한 창이 남의 '막힘'을 뒤집어쓴다.
-    expect(pickSessionFor(list, "vp-erp")).toBeUndefined();
+    expect(pickSessionFor(list, "beta")).toBeUndefined();
   });
 
   it("이름이 안 맞으면 설정된 경로로 찾는다", () => {
-    expect(pickSessionFor(list, "별명", "/home/mokgam/projects/honclwd")?.name).toBe("chageun");
+    expect(pickSessionFor(list, "별명", "/home/user/projects/project-a")?.name).toBe("alpha");
   });
 
   it("이름이 맞는 게 있으면 경로는 보지 않는다", () => {
-    expect(pickSessionFor(list, "chageun", "/전혀/다른/곳")?.name).toBe("chageun");
+    expect(pickSessionFor(list, "alpha", "/전혀/다른/곳")?.name).toBe("alpha");
   });
 
   it("같은 이름이 여럿이면 가장 최근에 뜬 것", () => {

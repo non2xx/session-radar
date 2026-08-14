@@ -2,11 +2,12 @@ import { ClaudeSession, ClaudeKind } from "./types";
 
 // ---- `claude agents --json` 읽기 ----
 //
-// 실측한 출력(2026-08-10, 이 기계 10줄):
-//   {"pid":10687,"cwd":"…/honclwd","kind":"interactive","startedAt":1786260973721,
-//    "sessionId":"3bd9f10e-…","name":"chageun","status":"busy"}
-//   {"id":"f627850e","cwd":"…/VALVEPARK-ERP","kind":"background","startedAt":1782193582958,
-//    "sessionId":"f627850e-…","name":"vp-erp","state":"blocked"}
+// 실측한 출력(2026-08-10, 이 기계 10줄). 이름·경로는 공개용 예시로 바꿨고, 칸 구성과
+// 값의 모양은 실측 그대로다:
+//   {"pid":10687,"cwd":"…/project-a","kind":"interactive","startedAt":1786260973721,
+//    "sessionId":"3bd9f10e-…","name":"alpha","status":"busy"}
+//   {"id":"f627850e","cwd":"…/PROJECT-B","kind":"background","startedAt":1782193582958,
+//    "sessionId":"f627850e-…","name":"beta","state":"blocked"}
 //
 // 세 가지를 조심한다.
 //  1) 상태 칸 이름이 kind 마다 다르다 — interactive 는 `status`, background 는 `state`.
@@ -56,7 +57,8 @@ function baseName(cwd: string): string {
  *
  * 짝은 **살아 있는 interactive 줄에만** 짓는다. background 줄은 tmux 창에서 도는 게 아니라
  * 따로 떠 있는 것이라, 이름이 같다는 이유로 붙이면 멀쩡한 창이 남의 상태를 뒤집어쓴다
- * (실측: 이름 "dooray"가 tmux 세션에도 있고 7주 막힌 background 줄에도 있었다).
+ * (실측: 한 이름이 tmux 세션에도 있고 7주 막힌 background 줄에도 있었다. 아래 예시에서는
+ *  그 이름을 "gamma"로 적는다).
  *
  * 이름이 먼저, 없으면 설정된 경로(cwd)로. 같은 이름이 여럿이면 가장 최근에 뜬 것.
  */

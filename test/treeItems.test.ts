@@ -17,10 +17,10 @@ describe("itemId — 접힘 기억이 여기에 달려 있다", () => {
     { kind: "ungroupedRoot" },
     { kind: "blockedRoot", count: 4 },
     { kind: "blockedSession", entry: blocked("S9") },
-    { kind: "session", node: sessionNode("chageun"), groupId: null },
-    { kind: "session", node: sessionNode("chageun"), groupId: "g1" },
-    { kind: "subagent", node: agentNode("a1"), ownerId: "s:-:chageun" },
-    { kind: "moreAgents", count: 3, ownerId: "s:-:chageun" },
+    { kind: "session", node: sessionNode("alpha"), groupId: null },
+    { kind: "session", node: sessionNode("alpha"), groupId: "g1" },
+    { kind: "subagent", node: agentNode("a1"), ownerId: "s:-:alpha" },
+    { kind: "moreAgents", count: 3, ownerId: "s:-:alpha" },
   ];
 
   it("모든 줄이 서로 다른 id 를 갖는다 (겹치면 VS Code 가 화를 낸다)", () => {
@@ -44,7 +44,7 @@ describe("itemId — 접힘 기억이 여기에 달려 있다", () => {
   });
 
   it("한 세션의 서브에이전트끼리도 안 부딪힌다", () => {
-    const owner = sessionItemId(null, "chageun");
+    const owner = sessionItemId(null, "alpha");
     const ids = ["a1", "a2", "a3"].map((i) => itemId({ kind: "subagent", node: agentNode(i), ownerId: owner }));
     expect(new Set(ids).size).toBe(3);
   });

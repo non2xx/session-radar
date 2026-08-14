@@ -20,7 +20,7 @@ import { SessionState, StatusEntry } from "./types";
 //  2) the agent tray, near the last lines of the screen while subagents run:
 //         ● main
 //         ◯ general-purpose         Reading foo.ts
-//         ◯ chageun:plan-validator  Checking the plan
+//         ◯ my-plugin:plan-validator Checking the plan
 //     "● main" never carries the main conversation's own activity — it stays bare even
 //     while main is thinking — so the tray answers "which agents", never "is main busy".
 //     Marker 1 is the only thing that answers that.

@@ -42,7 +42,7 @@ export interface ClaudeSession {
 export interface SubagentNode {
   id: string;            // agent-<id>.jsonl 의 <id>
   description: string;   // 나무의 이름표(무슨 일을 시켰나)
-  agentType: string;     // general-purpose · chageun:pr-reviewer …
+  agentType: string;     // general-purpose · my-plugin:pr-reviewer …
   depth: number;         // spawnDepth (없으면 1)
   parentId?: string;     // parentAgentId — 있으면 그 밑으로 들여쓴다
   model?: string;

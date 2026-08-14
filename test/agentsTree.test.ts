@@ -16,10 +16,10 @@ const summary = (over: Partial<SubagentSummary> = {}): SubagentSummary =>
   ({ running: 1, shown: [agent()], hidden: 0, total: 1, ...over });
 
 const sessions = parseClaudeAgents(JSON.stringify([
-  { pid: 1, cwd: "/p/honclwd", kind: "interactive", startedAt: NOW - 1000,
-    sessionId: "S1", name: "chageun", status: "busy" },
+  { pid: 1, cwd: "/p/project-a", kind: "interactive", startedAt: NOW - 1000,
+    sessionId: "S1", name: "alpha", status: "busy" },
   { id: "z", cwd: "/p/erp", kind: "background", startedAt: NOW - 49 * 24 * 3600_000,
-    sessionId: "S2", name: "vp-erp", state: "blocked" },
+    sessionId: "S2", name: "beta", state: "blocked" },
 ]));
 
 const index = (scan: (id: string) => SubagentSummary | undefined, names: string[]) =>
@@ -36,14 +36,14 @@ describe("visibleNames", () => {
 });
 
 describe("buildTree + 서브에이전트", () => {
-  const statuses = new Map<string, StatusEntry>([["chageun", { state: "working", ts: 5 }]]);
+  const statuses = new Map<string, StatusEntry>([["alpha", { state: "working", ts: 5 }]]);
 
   it("짝지어진 세션에 claude 줄과 서브에이전트가 붙는다", () => {
-    const t = buildTree(emptyLayout(), statuses, ["chageun", "note"],
-      index(() => summary(), ["chageun", "note"]));
-    const chageun = t.ungrouped.find((s) => s.name === "chageun")!;
-    expect(chageun.claude?.sessionId).toBe("S1");
-    expect(chageun.subagents?.running).toBe(1);
+    const t = buildTree(emptyLayout(), statuses, ["alpha", "note"],
+      index(() => summary(), ["alpha", "note"]));
+    const alpha = t.ungrouped.find((s) => s.name === "alpha")!;
+    expect(alpha.claude?.sessionId).toBe("S1");
+    expect(alpha.subagents?.running).toBe(1);
     const note = t.ungrouped.find((s) => s.name === "note")!;
     expect(note.claude).toBeUndefined();
     expect(note.subagents).toBeUndefined(); // 짝 없는 세션은 예전 모양 그대로
@@ -52,33 +52,33 @@ describe("buildTree + 서브에이전트", () => {
   it("★ 막힌 세션은 tmux 세션이 하나도 없어도 나온다", () => {
     const t = buildTree(emptyLayout(), new Map(), [], index(() => undefined, []));
     expect(t.ungrouped).toHaveLength(0);
-    expect(t.blocked.map((b) => b.session.name)).toEqual(["vp-erp"]);
+    expect(t.blocked.map((b) => b.session.name)).toEqual(["beta"]);
   });
 
   it("에이전트 정보를 안 넘기면 예전과 똑같다", () => {
-    const t = buildTree(emptyLayout(), statuses, ["chageun"]);
+    const t = buildTree(emptyLayout(), statuses, ["alpha"]);
     expect(t.ungrouped[0].claude).toBeUndefined();
     expect(t.ungrouped[0].subagents).toBeUndefined();
     expect(t.blocked).toEqual([]);
   });
 
   it("빈 index 여도 안 깨진다", () => {
-    const t = buildTree(emptyLayout(), statuses, ["chageun"], emptyAgentsIndex());
-    expect(t.ungrouped[0].name).toBe("chageun");
+    const t = buildTree(emptyLayout(), statuses, ["alpha"], emptyAgentsIndex());
+    expect(t.ungrouped[0].name).toBe("alpha");
     expect(t.blocked).toEqual([]);
   });
 
   it("그룹 안 세션에도 붙는다", () => {
     const layout = emptyLayout();
-    layout.groups.push({ id: "g1", name: "G", sessions: ["chageun"] });
-    const t = buildTree(layout, statuses, [], index(() => summary(), ["chageun"]));
+    layout.groups.push({ id: "g1", name: "G", sessions: ["alpha"] });
+    const t = buildTree(layout, statuses, [], index(() => summary(), ["alpha"]));
     expect(t.groups[0].sessions[0].subagents?.running).toBe(1);
   });
 });
 
 describe("카드 뷰 데이터(decorate)", () => {
   const tree = (sub?: SubagentSummary) =>
-    buildTree(emptyLayout(), new Map(), ["chageun"], index(() => sub, ["chageun"]));
+    buildTree(emptyLayout(), new Map(), ["alpha"], index(() => sub, ["alpha"]));
 
   it("도는 개수와 줄이 실려 나간다", () => {
     const d = decorate(tree(summary()), NOW);
@@ -104,7 +104,7 @@ describe("카드 뷰 데이터(decorate)", () => {
     const meta = agentRowMeta(n, NOW);
     expect(meta).toBe("방금");
     expect(meta).not.toContain("general-purpose");
-    expect(meta).not.toContain(":"); // `chageun:pr-reviewer` 같은 종류도 못 들어온다
+    expect(meta).not.toContain(":"); // `my-plugin:pr-reviewer` 같은 종류도 못 들어온다
   });
 
   it("★ 긴 이름은 웹뷰로 넘어가기 전에 잘린다 (자르기 규칙이 한 곳에만 있게)", () => {

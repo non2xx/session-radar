@@ -18,7 +18,7 @@ describe("parsePaneStates", () => {
   });
 
   it("claude + ✳ title → turn (내 차례)", () => {
-    expect(parsePaneStates(line("vp-erp", "claude", "✳ vp-erp")).get("vp-erp")?.state).toBe("turn");
+    expect(parsePaneStates(line("beta", "claude", "✳ beta")).get("beta")?.state).toBe("turn");
   });
 
   it("plain shell (claude not running) → inactive", () => {

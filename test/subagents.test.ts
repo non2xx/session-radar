@@ -29,14 +29,14 @@ function fakeFs(files: Record<string, number>, metas: Record<string, any> = {}):
 
 describe("encodeProjectDir / subagentsDir", () => {
   it("★ 실측 규칙: 영문·숫자가 아닌 글자는 전부 -", () => {
-    expect(encodeProjectDir("/home/mokgam/projects/honclwd")).toBe("-home-mokgam-projects-honclwd");
-    expect(encodeProjectDir("/home/mokgam/projects/VALVEPARK-ERP"))
-      .toBe("-home-mokgam-projects-VALVEPARK-ERP");
-    expect(encodeProjectDir("/home/mokgam/projects")).toBe("-home-mokgam-projects");
+    expect(encodeProjectDir("/home/user/projects/project-a")).toBe("-home-user-projects-project-a");
+    expect(encodeProjectDir("/home/user/projects/PROJECT-B"))
+      .toBe("-home-user-projects-PROJECT-B");
+    expect(encodeProjectDir("/home/user/projects")).toBe("-home-user-projects");
   });
   it("점·밑줄도 - 로 바뀐다 (실측: .cache → --cache)", () => {
-    expect(encodeProjectDir("/home/mokgam/.cache/claude-tmp"))
-      .toBe("-home-mokgam--cache-claude-tmp");
+    expect(encodeProjectDir("/home/user/.cache/claude-tmp"))
+      .toBe("-home-user--cache-claude-tmp");
     expect(encodeProjectDir("/a/b.c_d")).toBe("-a-b-c-d");
   });
   // 한글 경로를 쓰는 프로젝트가 이 기계에 없어 실측을 못 했다. 규칙에서 따라 나오는 값만 적는다.
@@ -57,7 +57,7 @@ describe("scanSubagents", () => {
   it("최근에 갱신된 .jsonl 은 '도는 중'", () => {
     const fs = fakeFs({ [f("a1")]: NOW - 2000, [f("a2")]: NOW - 10 * 60_000 },
       { [m("a1")]: { agentType: "general-purpose", description: "일 하나", spawnDepth: 1 },
-        [m("a2")]: { agentType: "chageun:pr-reviewer", description: "다 본 것", spawnDepth: 1 } });
+        [m("a2")]: { agentType: "my-plugin:pr-reviewer", description: "다 본 것", spawnDepth: 1 } });
     const s = scanSubagents(dir, fs, NOW)!;
     expect(s.running).toBe(1);
     expect(s.total).toBe(2);
@@ -219,10 +219,10 @@ describe("flattenAgents", () => {
 
 describe("buildAgentsIndex", () => {
   const raw = JSON.stringify([
-    { pid: 1, cwd: "/p/honclwd", kind: "interactive", startedAt: NOW - 1000,
-      sessionId: "S1", name: "chageun", status: "busy" },
+    { pid: 1, cwd: "/p/project-a", kind: "interactive", startedAt: NOW - 1000,
+      sessionId: "S1", name: "alpha", status: "busy" },
     { id: "z", cwd: "/p/erp", kind: "background", startedAt: NOW - 49 * 24 * 3600_000,
-      sessionId: "S2", name: "vp-erp", state: "blocked" },
+      sessionId: "S2", name: "beta", state: "blocked" },
   ]);
   const sessions = parseClaudeAgents(raw);
   const summary = (running: number): SubagentSummary =>
@@ -232,15 +232,15 @@ describe("buildAgentsIndex", () => {
     buildAgentsIndex(sessions, names, paths, scan, NOW, pickSessionFor, blockedSessions);
 
   it("이름이 맞는 세션에 붙는다", () => {
-    const idx = build(["chageun", "note"]);
-    expect(idx.bySession.get("chageun")?.subagents?.running).toBe(3);
+    const idx = build(["alpha", "note"]);
+    expect(idx.bySession.get("alpha")?.subagents?.running).toBe(3);
     expect(idx.bySession.has("note")).toBe(false); // 짝 없는 세션은 예전 그대로
   });
 
   it("★ 막힌 세션은 tmux 이름과 상관없이 따로 모인다", () => {
-    const idx = build(["chageun"]); // tmux 목록에 vp-erp 가 아예 없다
+    const idx = build(["alpha"]); // tmux 목록에 beta 가 아예 없다
     expect(idx.blocked).toHaveLength(1);
-    expect(idx.blocked[0].session.name).toBe("vp-erp");
+    expect(idx.blocked[0].session.name).toBe("beta");
     expect(idx.blocked[0].subagents?.running).toBe(1);
   });
 
@@ -249,13 +249,13 @@ describe("buildAgentsIndex", () => {
   });
 
   it("막힌 세션이 tmux 이름과 같아도 그 세션 줄을 물들이지 않는다", () => {
-    const idx = build(["vp-erp"]);
-    expect(idx.bySession.has("vp-erp")).toBe(false);
+    const idx = build(["beta"]);
+    expect(idx.bySession.has("beta")).toBe(false);
     expect(idx.blocked).toHaveLength(1);
   });
 
   it("경로로도 짝을 짓는다", () => {
-    const idx = build(["별명"], { "별명": "/p/honclwd" });
+    const idx = build(["별명"], { "별명": "/p/project-a" });
     expect(idx.bySession.get("별명")?.claude?.sessionId).toBe("S1");
   });
 });
